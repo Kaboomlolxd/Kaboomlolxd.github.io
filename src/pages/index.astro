@@ -78,15 +78,30 @@ const projects = [
   requestParallax();
 
   const activeObserver = new IntersectionObserver(
-    (entries) => entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
+    (entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      const nextId = visible.target.id;
+      const previous = cards.findIndex((card) => card.classList.contains('project-is-active'));
+      const next = cards.findIndex((card) => card.id === nextId);
+      if (next < 0) return;
+      if (previous >= 0 && previous !== next) {
+        const direction = next > previous ? 'forward' : 'backward';
+        cards[previous].classList.remove('project-is-active', 'project-page-turn-in');
+        cards[previous].classList.add(`project-page-turn-out-${direction}`);
+        cards[next].classList.add('project-is-active', `project-page-turn-in-${direction}`);
+        window.setTimeout(() => cards[previous].classList.remove(`project-page-turn-out-${direction}`), 720);
+        window.setTimeout(() => cards[next].classList.remove(`project-page-turn-in-${direction}`), 720);
+      } else {
+        cards[next].classList.add('project-is-active');
+      }
       links.forEach((link) => {
-        const active = link.dataset.projectLink === entry.target.id;
+        const active = link.dataset.projectLink === nextId;
         link.classList.toggle('is-active', active);
         if (active) link.setAttribute('aria-current', 'location');
         else link.removeAttribute('aria-current');
       });
-    }),
+    },
     { rootMargin: '-35% 0px -55% 0px', threshold: 0 },
   );
   cards.forEach((card) => activeObserver.observe(card));

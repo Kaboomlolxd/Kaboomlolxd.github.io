@@ -230,14 +230,37 @@ main,
   scroll-snap-type: y proximity;
 }
 
-.project-details { min-width: 0; }
+.project-details { min-width: 0; perspective: 1200px; perspective-origin: 50% 18%; }
 .project-detail {
   scroll-margin-top: 1.5rem;
   border-bottom: 1px solid var(--line);
   contain: layout paint;
+  transform-origin: left center;
+  backface-visibility: hidden;
 }
 .project-detail:last-child { border-bottom: 0; }
 .project-detail .project-hero { padding-top: 1rem; }
+.project-detail.project-page-turn-in-forward { animation: project-page-turn-in-forward 680ms cubic-bezier(.2,.8,.2,1) both; }
+.project-detail.project-page-turn-out-forward { animation: project-page-turn-out-forward 680ms cubic-bezier(.2,.8,.2,1) both; }
+.project-detail.project-page-turn-in-backward { animation: project-page-turn-in-backward 680ms cubic-bezier(.2,.8,.2,1) both; }
+.project-detail.project-page-turn-out-backward { animation: project-page-turn-out-backward 680ms cubic-bezier(.2,.8,.2,1) both; }
+
+@keyframes project-page-turn-in-forward {
+  from { opacity: 0.42; transform: perspective(1200px) rotateY(-10deg) translateX(2.5rem); box-shadow: -1.5rem 1.5rem 3rem rgba(57, 67, 108, 0.18); }
+  to { opacity: 1; transform: perspective(1200px) rotateY(0) translateX(0); box-shadow: none; }
+}
+@keyframes project-page-turn-out-forward {
+  from { opacity: 1; transform: perspective(1200px) rotateY(0) translateX(0); }
+  to { opacity: 0.58; transform: perspective(1200px) rotateY(5deg) translateX(-1rem); }
+}
+@keyframes project-page-turn-in-backward {
+  from { opacity: 0.42; transform: perspective(1200px) rotateY(10deg) translateX(-2.5rem); box-shadow: 1.5rem 1.5rem 3rem rgba(57, 67, 108, 0.18); }
+  to { opacity: 1; transform: perspective(1200px) rotateY(0) translateX(0); box-shadow: none; }
+}
+@keyframes project-page-turn-out-backward {
+  from { opacity: 1; transform: perspective(1200px) rotateY(0) translateX(0); }
+  to { opacity: 0.58; transform: perspective(1200px) rotateY(-5deg) translateX(1rem); }
+}
 .project-detail .project-hero__copy,
 .project-detail .engine-demo-video,
 .project-detail .project-gallery img {
@@ -825,6 +848,10 @@ main,
   .project-detail .project-hero__copy,
   .project-detail .engine-demo-video,
   .project-detail .project-gallery img { transform: none; }
+  .project-detail.project-page-turn-in-forward,
+  .project-detail.project-page-turn-out-forward,
+  .project-detail.project-page-turn-in-backward,
+  .project-detail.project-page-turn-out-backward { animation: none; }
   .external-project-panel { align-items: flex-start; flex-direction: column; }
 
   .reveal-on-scroll { transform: translateY(0.75rem); }
@@ -909,6 +936,10 @@ main,
   .project-detail .project-hero__copy,
   .project-detail .engine-demo-video,
   .project-detail .project-gallery img { transform: none; transition: none; }
+  .project-detail.project-page-turn-in-forward,
+  .project-detail.project-page-turn-out-forward,
+  .project-detail.project-page-turn-in-backward,
+  .project-detail.project-page-turn-out-backward { animation: none; }
   .project-detail .project-section > *:not(video) { animation: none; opacity: 1; transform: none; }
   .ssd-pack__layers i, .rwkv-layer, .state-visual span, .compute-stage { transition: none; animation: none; }
   .engine-demo::before, .engine-demo[data-running="true"] .pipeline-lane__heading span,
