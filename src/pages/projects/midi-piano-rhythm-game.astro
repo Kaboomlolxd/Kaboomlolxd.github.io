@@ -1,0 +1,15 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import ProjectContent from '../../components/project-content/PianoProjectContent.astro';
+import '../../styles/global.css';
+---
+<BaseLayout title="MIDI Piano Rhythm Game | Portfolio" description="A local piano rhythm game with MIDI input, falling notes, practice controls, and offline playback.">
+  <Header />
+  <main id="main-content" class="project-page">
+    <a class="back-link" href="/#projects">← Back to projects</a>
+    <ProjectContent />
+  </main>
+  <Footer />
+</BaseLayout>

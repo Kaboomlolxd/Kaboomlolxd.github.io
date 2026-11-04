@@ -1,0 +1,75 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import RwkvProjectContent from '../components/project-content/RwkvProjectContent.astro';
+import LibraryProjectContent from '../components/project-content/LibraryProjectContent.astro';
+import PianoProjectContent from '../components/project-content/PianoProjectContent.astro';
+import CombatLearningAgentProjectContent from '../components/project-content/CombatLearningAgentProjectContent.astro';
+import '../styles/global.css';
+
+const projects = [
+  { id: 'project-rwkv', title: 'RWKV SSD-streaming inference engine' },
+  { id: 'project-library', title: 'Local Music Library' },
+  { id: 'project-piano', title: 'MIDI Piano Rhythm Game' },
+  { id: 'project-combat', title: 'Combat Learning Agent' },
+];
+---
+
+<BaseLayout title="My projects | Portfolio" description="Projects and demos for a language model inference engine, a local music library, a MIDI piano rhythm game, and a group reinforcement learning project.">
+  <Header />
+
+  <main id="main-content" class="project-browser">
+    <section id="projects" class="content-section" aria-labelledby="projects-heading">
+      <h1 id="projects-heading" class="projects-page-heading">My projects</h1>
+      <div class="projects-layout">
+        <nav class="project-index" aria-label="Project index">
+          <p class="project-index__label">Jump to</p>
+          <ol>
+            {projects.map((project, index) => (
+              <li>
+                <a href={`#${project.id}`} data-project-link={project.id}>
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  {project.title}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+        <div class="project-details">
+          <article id="project-rwkv" class="project-detail"><RwkvProjectContent embedded /></article>
+          <article id="project-library" class="project-detail"><LibraryProjectContent embedded /></article>
+          <article id="project-piano" class="project-detail"><PianoProjectContent embedded /></article>
+          <article id="project-combat" class="project-detail"><CombatLearningAgentProjectContent embedded /></article>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<script>
+  import '../scripts/engine-demo';
+</script>
+
+<script>
+  const cards = [...document.querySelectorAll<HTMLElement>('.project-detail')];
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-project-link]')];
+
+  const activeObserver = new IntersectionObserver(
+    (entries) => entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      links.forEach((link) => {
+        const active = link.dataset.projectLink === entry.target.id;
+        link.classList.toggle('is-active', active);
+        if (active) link.setAttribute('aria-current', 'location');
+        else link.removeAttribute('aria-current');
+      });
+    }),
+    { rootMargin: '-35% 0px -55% 0px', threshold: 0 },
+  );
+  cards.forEach((card) => activeObserver.observe(card));
+</script>
+

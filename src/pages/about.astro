@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+---
+
+<BaseLayout title="About | Portfolio" description="About the projects in this portfolio.">
+  <Header />
+  <main id="main-content" class="about-page">
+    <section class="content-section" aria-labelledby="about-heading">
+      <h1 id="about-heading">About</h1>
+      <p>I build software projects around local AI inference and music. This site collects the work, with demos and implementation details for each project.</p>
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>

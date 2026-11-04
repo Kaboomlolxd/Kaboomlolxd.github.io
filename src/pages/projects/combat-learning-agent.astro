@@ -1,0 +1,15 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import CombatLearningAgentProjectContent from '../../components/project-content/CombatLearningAgentProjectContent.astro';
+import '../../styles/global.css';
+---
+<BaseLayout title="Combat Learning Agent | Portfolio" description="A group project exploring reinforcement learning for real-time combat in Unreal Engine 5.">
+  <Header />
+  <main id="main-content" class="project-page">
+    <a class="back-link" href="/#projects">← Back to projects</a>
+    <CombatLearningAgentProjectContent />
+  </main>
+  <Footer />
+</BaseLayout>

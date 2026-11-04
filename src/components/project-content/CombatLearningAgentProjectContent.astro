@@ -1,0 +1,36 @@
+---
+const { embedded = false } = Astro.props;
+const TitleTag = embedded ? 'h2' : 'h1';
+---
+<section class="project-hero" aria-labelledby="combat-project-heading">
+  <div class="project-hero__copy">
+    <p class="eyebrow">Group project · Unreal Engine 5</p>
+    <TitleTag id="combat-project-heading" class="project-title">Combat Learning Agent</TitleTag>
+    <p class="project-hero__lead">Reinforcement learning for real-time combat in Unreal Engine 5.</p>
+    <p>This group project explores whether a reinforcement learning agent can learn effective melee combat while interacting with the same movement, attack, defense, and gameplay systems available to a human-controlled character.</p>
+    <p>The agent uses Unreal Engine's Learning Agents framework and PPO. A rule-based boss provides the opponent, while observations, actions, and rewards connect the policy to the combat environment.</p>
+    <div class="project-actions">
+      {embedded && <a class="button" href="/projects/combat-learning-agent/">Open project page <span aria-hidden="true">↗</span></a>}
+      <a class="button button--primary" href="https://ericxucui.github.io/CombatLearningAgent/" target="_blank" rel="noreferrer">Open project site <span aria-hidden="true">↗</span></a>
+      <a class="button" href="https://github.com/EricXuCui/CombatLearningAgent" target="_blank" rel="noreferrer">View repository <span aria-hidden="true">↗</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="project-section combat-project-section" aria-labelledby="combat-overview-heading">
+  <div class="section-heading"><p class="eyebrow">Project overview</p><h3 id="combat-overview-heading">A documented learning system</h3></div>
+  <div class="built-grid">
+    <article><span class="built-number">01</span><h3>Combat environment</h3><p>Both characters use shared gameplay mechanics. The boss follows an Unreal behavior tree while the learning agent chooses high-level combat actions.</p></article>
+    <article><span class="built-number">02</span><h3>Training loop</h3><p>Structured observations describe the encounter, policy outputs become movement and combat commands, and rewards come from combat events and episode outcomes.</p></article>
+    <article><span class="built-number">03</span><h3>Evaluation</h3><p>The project site records the training process, implementation choices, development notes, and the final inference evaluation.</p></article>
+  </div>
+</section>
+
+<section class="project-section combat-project-section" aria-labelledby="combat-site-heading">
+  <div class="section-heading"><p class="eyebrow">Live documentation</p><h3 id="combat-site-heading">Explore the original project site</h3><p>The full group project site includes system diagrams, training charts, inference videos, results, references, and the showcase team credits.</p></div>
+  <div class="external-project-panel">
+    <div><strong>Combat Learning Agent</strong><span>McGill Undergraduate Research Showcase</span></div>
+    <a class="button button--primary" href="https://ericxucui.github.io/CombatLearningAgent/" target="_blank" rel="noreferrer">Visit live site <span aria-hidden="true">↗</span></a>
+  </div>
+  <p class="project-note">Team project by Eric Xu Cui, Matthew Tan Yin Sian, and Jason Shen. The external site and repository remain the source for the original project assets and code.</p>
+</section>

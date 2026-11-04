@@ -1,0 +1,46 @@
+---
+const { embedded = false } = Astro.props;
+const TitleTag = embedded ? 'h2' : 'h1';
+const features = [
+  ['Standard MIDI charts', 'Import validated MIDI files, inspect them before saving, and attach optional backing audio or artwork.'],
+  ['Exact MIDI input', 'Play from native Web MIDI, the local bridge, or the computer keyboard. Note timing and pitch feed the same scoring path.'],
+  ['Falling-note playfield', 'Follow chart events in a Pixi playfield with held-note bodies, hand filtering, and adjustable scroll speed.'],
+  ['Practice controls', 'Loop a section, change timing offset and strictness, retry quickly, or turn on autoplay for a preview.'],
+  ['Standard and Expressive scoring', 'Compare runs with score, accuracy, judgement counts, timing review, and saved personal bests.'],
+  ['Local chart library', 'Search, sort, favorite, edit, export, and replay charts without an account or cloud service.'],
+  ['Offline PWA', 'Install the app shell and keep playing charts already stored on the device when the network is unavailable.'],
+  ['Themeable interface', 'Adjust palettes, skins, button frames, artwork dimming, shortcut hints, and motion settings with local JSON themes.'],
+];
+---
+<section class="project-hero" aria-labelledby="piano-project-heading">
+      <div class="project-hero__copy">
+        <p class="eyebrow">Project · Browser game</p>
+        <TitleTag id="piano-project-heading" class="project-title">MIDI Piano Rhythm Game</TitleTag>
+        <p class="project-hero__lead">A desktop-first, local-first piano practice game that turns Standard MIDI charts into playable, reviewable sessions.</p>
+        <p>Import a chart, connect a piano through Web MIDI or the local bridge, and play through a Pixi falling-note playfield. The computer keyboard remains available as a fallback. Timing, pitch, and held notes enter one game-core scoring path, while Svelte and Pixi present the session without deciding whether a note matches.</p>
+        <p>Charts can carry backing audio and artwork. The local library keeps scores, settings, appearance, and practice history on the device, and the installable PWA can reopen saved charts offline.</p>
+        {embedded && <div class="project-actions"><a class="button" href="/projects/midi-piano-rhythm-game/">Open project page <span aria-hidden="true">↗</span></a></div>}
+      </div>
+    </section>
+
+    <section class="project-section project-section--demo" aria-labelledby="piano-demo-heading">
+      <div class="section-heading">
+        <p class="eyebrow">Demo</p>
+        <h2 id="piano-demo-heading">A run from chart import to results</h2>
+        <p>The recording shows the game in use, including the falling-note playfield and the practice loop that the project is built around.</p>
+      </div>
+      <video class="engine-demo-video" src="/media/piano-game-demo-web.mp4" controls playsinline preload="metadata" aria-label="MIDI Piano Rhythm Game demo"></video>
+      <p class="project-note">MIDI Piano Rhythm Game demo.</p>
+    </section>
+
+    <section class="project-section" aria-labelledby="piano-features-heading">
+      <div class="section-heading"><p class="eyebrow">Features</p><h2 id="piano-features-heading">Built for repeated practice</h2></div>
+      <div class="built-grid">
+        {features.map(([title, copy], index) => <article><span class="built-number">{String(index + 1).padStart(2, '0')}</span><h3>{title}</h3><p>{copy}</p></article>)}
+      </div>
+    </section>
+
+    <section class="project-section project-section--closing" aria-labelledby="piano-architecture-heading">
+      <div class="section-heading"><p class="eyebrow">Architecture</p><h2 id="piano-architecture-heading">Gameplay stays in the core</h2><p>Input adapters normalize events before they reach the session. The piano ruleset owns note matching and held-note lifetime, the score processor owns results, and the renderer only presents judgements and playfield state. That separation keeps the practice loop testable as the app adds more input sources and chart features.</p></div>
+    </section>
+

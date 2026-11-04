@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.astro/
+.env
+.env.*
+!.env.example
+
+# Original local media is too large for a normal GitHub Pages repository.
+Pianogamedemo.mp4
+RWKV-SSD video sample.mp4
+public/media/piano-game-demo.mp4

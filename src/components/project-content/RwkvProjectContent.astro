@@ -1,0 +1,228 @@
+---
+const { embedded = false } = Astro.props;
+const TitleTag = embedded ? 'h2' : 'h1';
+
+---
+<section class="project-hero" aria-labelledby="rwkv-project-heading">
+      <div class="project-hero__copy">
+        <p class="eyebrow">Project · 2026 – Present</p>
+        <TitleTag id="rwkv-project-heading" class="project-title">RWKV SSD-streaming inference engine</TitleTag>
+        <p class="project-hero__lead">
+          Running a language model when the full model does not fit comfortably in memory.
+        </p>
+        <p>
+          I built a system that keeps the model's working state in memory and loads the rest from SSD as it is needed. It includes model setup tools, a local interface, and tests that compare the streamed version with a standard run.
+        </p>
+        <div class="project-actions">
+          {embedded && <a class="button" href="/projects/rwkv-ssd/">Open project page <span aria-hidden="true">↗</span></a>}
+          <a class="button button--primary" href="https://github.com/Kaboomlolxd/SSD-RWKV-engine" target="_blank" rel="noreferrer">View source <span aria-hidden="true">↗</span></a>
+          <a class="button" href="#rwkv-demo">See the demo</a>
+        </div>
+      </div>
+
+    </section>
+
+    <section id="rwkv-demo" class="project-section project-section--demo" aria-labelledby="rwkv-demo-heading">
+      <div class="section-heading">
+        <p class="eyebrow">Engine walkthrough</p>
+        <h2 id="rwkv-demo-heading">A token, one layer at a time</h2>
+        <p>Watch weights move from storage through the cache and compute path, then into recurrent state.</p>
+      </div>
+
+      <video class="engine-demo-video" controls playsinline preload="metadata" aria-label="RWKV SSD streaming engine demo video">
+        <source src="/media/rwkv-ssd-video-sample.mp4" type="video/mp4" />
+        Your browser does not support embedded video.
+      </video>
+
+      <div class="engine-demo" data-engine-demo>
+        <div class="engine-demo__topline">
+          <span class="demo-status"><i></i> Simulated token pass</span>
+          <span class="engine-demo__mode" data-demo-mode-label>Small RAM cache · 3 layers</span>
+        </div>
+
+        <div class="engine-demo__toolbar">
+          <div class="engine-demo__modes" role="group" aria-label="Choose an engine mode">
+            <button type="button" class="demo-mode" data-demo-mode="strict" aria-pressed="false">Read each layer</button>
+            <button type="button" class="demo-mode is-selected" data-demo-mode="bounded" aria-pressed="true">Small RAM cache</button>
+            <button type="button" class="demo-mode" data-demo-mode="partial" aria-pressed="false">Keep some layers</button>
+            <button type="button" class="demo-mode" data-demo-mode="resident" aria-pressed="false">All weights in RAM</button>
+          </div>
+          <div class="demo-buttons">
+            <button type="button" class="button button--small" data-demo-reset>Reset</button>
+            <button type="button" class="button button--small" data-demo-step-action>Run next stage</button>
+            <button type="button" class="button button--small" data-demo-layer-action>Run layer</button>
+            <button type="button" class="button button--primary button--small" data-demo-run>Run full token <span aria-hidden="true">→</span></button>
+          </div>
+        </div>
+
+        <div class="engine-demo__configuration">
+          <label><span>CPU backend</span><select data-demo-backend><option value="native">rwkv.cpp native</option><option value="reference">ChatRWKV reference</option></select></label>
+          <label><span>Weight format</span><select data-demo-codec><option value="u8">Grouped U8</option><option value="raw">Raw dense</option></select></label>
+          <label><span>Read-ahead</span><select data-demo-prefetch><option value="next">Next layer · default</option><option value="adaptive">Adaptive · I/O-bound example</option><option value="off">Off · demand reads only</option></select></label>
+          <label><span>Sessions</span><select data-demo-sessions><option value="1">1 session</option><option value="2">2 sessions</option><option value="4">4 sessions</option></select></label>
+        </div>
+
+        <div class="engine-demo__summary">
+          <div><span>Token pass</span><strong data-demo-token>1</strong></div>
+          <div><span>Layer</span><strong data-demo-layer>Waiting</strong></div>
+          <div><span>Weight memory</span><strong data-demo-memory>3 layer cache</strong></div>
+          <div><span>Pack reads</span><strong data-demo-reads>0</strong></div>
+          <div><span>Cache hits / misses</span><strong data-demo-cache>0 hits · 0 misses</strong></div>
+          <div><span>Read-ahead hits</span><strong data-demo-prefetch-metrics>0 hits · 0 misses</strong></div>
+        </div>
+
+        <div class="engine-demo__playback">
+          <p data-demo-path-note>Follow one layer through storage, cache, compute, and state.</p>
+          <label>Playback <select data-demo-speed><option value="650">Guided</option><option value="1200">Slow</option><option value="200">Fast</option></select></label>
+        </div>
+
+        <div class="engine-demo__workspace">
+          <div class="engine-demo__pipeline" aria-label="Animated engine pipeline">
+            <div class="pipeline-lane pipeline-lane--storage">
+              <div class="pipeline-lane__heading"><span>01 · SSD storage</span><small data-demo-read-status>idle</small></div>
+              <div class="ssd-pack" aria-label="Model pack on SSD">
+                <div class="ssd-pack__header"><b>weights.bin</b><span>manifest.json</span></div>
+                <div class="ssd-pack__layers">
+                  {Array.from({ length: 12 }, (_, index) => <span data-ssd-layer={index}><i></i><small>L{index + 1}</small></span>)}
+                </div>
+                <div class="ssd-pack__footer"><span data-demo-read-bytes>0 pack read requests</span><span>index → file span</span></div>
+                <div class="ssd-globals"><span>Global tensors</span><b>embedding</b><b>output head</b></div>
+              </div>
+              <div class="layer-record"><span>Selected manifest group</span><code data-demo-record>blocks.0.*</code><small>tensor name → codec, shape, offset, length</small></div>
+            </div>
+
+            <div class="pipeline-connector" data-pipeline-route="pack-provider" aria-hidden="true"><span data-demo-packet></span></div>
+
+            <div class="pipeline-lane pipeline-lane--cache">
+              <div class="pipeline-lane__heading"><span>02 · RAM cache</span><small data-demo-cache-status>bounded retention</small></div>
+              <div class="cache-rack">
+                {Array.from({ length: 6 }, (_, index) => <div class="cache-slot" data-cache-slot={index}><span>slot {index + 1}</span><b>empty</b></div>)}
+              </div>
+              <div class="prefetch-strip"><span class="prefetch-label">prefetch queue</span><span data-prefetch-item>empty</span><i></i><i></i><i></i></div>
+              <div class="provider-footnote" data-demo-provider-note>Cached model layers stay in RAM.</div>
+            </div>
+
+            <div class="pipeline-connector" data-pipeline-route="provider-compute" aria-hidden="true"><span data-demo-packet></span></div>
+
+            <div class="pipeline-lane pipeline-lane--compute">
+              <div class="pipeline-lane__heading"><span>03 · Stage and compute</span><small data-demo-compute-status>waiting</small></div>
+              <div class="compute-panel">
+                <div class="compute-stage" data-compute-step="prepare"><span class="stage-icon">A</span><div><b data-demo-prepare-title>Decode / prepare</b><small data-demo-stage-detail>prepare current layer for the backend</small></div><i></i></div>
+                <div class="compute-stage" data-compute-step="sync"><span class="stage-icon">B</span><div><b data-demo-sync-title>Install active layer</b><small data-demo-sync-detail>set current weights in the execution path</small></div><i></i></div>
+                <div class="compute-stage" data-compute-step="compute"><span class="stage-icon">C</span><div><b>Run RWKV block</b><small data-demo-compute-detail>time mix, channel mix, and layer state</small></div><i></i></div>
+              </div>
+              <div class="block-detail" aria-label="Operations inside the current block">
+                <div data-block-op="time-mix"><span>01</span><b>Time mix</b><small>previous activation + recurrent matrix</small></div>
+                <i aria-hidden="true">↓</i>
+                <div data-block-op="channel-mix"><span>02</span><b>Channel mix</b><small>feed-forward work + previous activation</small></div>
+                <i aria-hidden="true">↓</i>
+                <div data-block-op="commit"><span>03</span><b>Save state</b><small>save the updated state for each session</small></div>
+              </div>
+              <div class="rwkv-stack" aria-label="RWKV layer stack">
+                {Array.from({ length: 12 }, (_, index) => <div class="rwkv-layer" data-rwkv-layer={index}><b>L{index + 1}</b><span>TMix</span><span>CMix</span><i></i></div>)}
+              </div>
+              <div class="activation-flow"><span data-demo-activation>token activation → L1</span><b aria-hidden="true">→</b><span>next layer</span></div>
+              <div class="staging-meter"><span>active layer buffer</span><div><i data-demo-buffer></i></div><strong data-demo-buffer-label>idle</strong></div>
+              <div class="compute-footnote" data-demo-compute-note>CPU execution path. Device transfer staging applies only to supported accelerator configurations.</div>
+            </div>
+
+            <div class="pipeline-connector" data-pipeline-route="compute-state" aria-hidden="true"><span data-demo-packet></span></div>
+
+            <div class="pipeline-lane pipeline-lane--state">
+              <div class="pipeline-lane__heading"><span>04 · Recurrent state</span><small data-demo-state-status>resident</small></div>
+              <div class="state-panel">
+                <div class="state-visual">
+                  {Array.from({ length: 12 }, (_, index) => <span data-state-layer={index} aria-label={`State for layer ${index + 1}`}></span>)}
+                </div>
+                <strong data-demo-state-label>Session state ready</strong>
+                <small>each layer keeps its own recurrent state</small>
+              </div>
+              <div class="token-sessions" data-demo-session-list><span class="session-chip is-active">session 1 · state ready</span></div>
+              <div class="token-result"><span>output head · logits</span><b data-demo-result>waiting</b></div>
+            </div>
+          </div>
+
+          <aside class="engine-demo__inspector" aria-label="Current engine event">
+            <div class="inspector-heading"><span>Execution trace</span><span data-demo-step-count>0 / 7</span></div>
+            <div class="trace-list">
+              <div class="trace-item" data-trace="manifest"><span>01</span><div><b>Find layer record</b><small>manifest supplies tensor names and file offsets</small></div><i></i></div>
+              <div class="trace-item" data-trace="read"><span>02</span><div><b>Read requested weights</b><small>fetch a pack span, or reuse resident, cached, or queued data</small></div><i></i></div>
+              <div class="trace-item" data-trace="prepare"><span>03</span><div><b>Check cache and prepare</b><small>reuse, decode, or keep supported weights packed</small></div><i></i></div>
+              <div class="trace-item" data-trace="install"><span>04</span><div><b>Install active weights</b><small>native path runs a layer-local graph</small></div><i></i></div>
+              <div class="trace-item" data-trace="time-mix"><span>05</span><div><b>Time mix</b><small>normalize activation, read prior state, run the recurrent attention step</small></div><i></i></div>
+              <div class="trace-item" data-trace="channel-mix"><span>06</span><div><b>Channel mix</b><small>add the residual, normalize, then run the feed-forward step</small></div><i></i></div>
+              <div class="trace-item" data-trace="commit"><span>07</span><div><b>Save state and release</b><small>advance all sessions; drop transient weights or retain them within the cap</small></div><i></i></div>
+            </div>
+            <p class="inspector-message" data-demo-message role="status">Choose a mode or setting, then run the next stage to begin.</p>
+            <div class="engine-log"><div class="engine-log__heading"><span>Recent events</span><span>simulated</span></div><ol data-demo-log><li>Engine ready. Choose a mode, then start the pass.</li></ol></div>
+          </aside>
+        </div>
+        <div class="overlap-timeline">
+          <div class="overlap-timeline__heading"><b data-demo-overlap>Read-ahead can overlap block work</b><span>stage order · no time scale</span></div>
+          <div class="overlap-timeline__grid" aria-label="Current layer execution and background read-ahead">
+            <span class="overlap-timeline__label">Stage</span>{['Find', 'Read', 'Prepare', 'Install', 'TMix', 'CMix', 'Save'].map((label) => <span class="overlap-timeline__label">{label}</span>)}
+            <span class="overlap-timeline__label">Block</span>{Array.from({ length: 7 }, (_, index) => <span class="timeline-cell" data-timeline-block={index}></span>)}
+            <span class="overlap-timeline__label">Read-ahead</span>{Array.from({ length: 7 }, (_, index) => <span class="timeline-cell timeline-cell--io" data-timeline-io={index}></span>)}
+          </div>
+          <p>Read-ahead begins during the current block. This example makes the queued spans ready before the next block asks for them.</p>
+        </div>
+        <div class="engine-memory" aria-label="Illustrative engine memory ownership">
+          <div><span>Global weights</span><b>embedding + output head</b><small>prepared before this token pass</small></div>
+          <div><span>Retained block weights</span><b data-demo-retained>0 / 3 cache slots</b><div class="memory-slots" aria-hidden="true">{Array.from({ length: 12 }, () => <i data-memory-slot></i>)}</div></div>
+          <div><span>In-flight work</span><b data-demo-inflight>no active layer</b><small>active layer and read-ahead are additional</small></div>
+          <div><span>Session state</span><b data-demo-state-memory>1 × 12 layer states</b><small>separate state, shared weight sweep</small></div>
+        </div>
+      </div>
+      <p class="project-note">Illustrative 12-layer pass. Read-ahead and counters are simulated. <a href="https://github.com/Kaboomlolxd/SSD-RWKV-engine/blob/main/docs/BACKENDS.md" target="_blank" rel="noreferrer">Backend docs</a> · <a href="https://github.com/Kaboomlolxd/SSD-RWKV-engine/blob/main/docs/V1_STREAMING.md" target="_blank" rel="noreferrer">Streaming docs</a> · <a href="https://github.com/Kaboomlolxd/SSD-RWKV-engine/blob/main/rwkv_ssd/runtime/prefetch.py" target="_blank" rel="noreferrer">Read-ahead code</a>.</p>
+    </section>
+
+    <section class="project-section" aria-labelledby="rwkv-results-heading">
+      <div class="section-heading section-heading--row">
+        <div>
+          <p class="eyebrow">Recorded benchmark</p>
+          <h2 id="rwkv-results-heading">SSD streaming stayed close to RAM speed</h2>
+        </div>
+        <p class="chart-context">Warm CPU decode · 0.1B model</p>
+      </div>
+
+      <figure class="benchmark-chart" aria-labelledby="rwkv-benchmark-title rwkv-benchmark-caption">
+        <figcaption id="rwkv-benchmark-title">Warm decode speed · tokens per second</figcaption>
+        <div class="chart-row"><span class="chart-label">F1 · each layer</span><div class="chart-track"><span class="chart-bar" style="--bar-width: 96%"></span></div><strong>50.98</strong></div>
+        <div class="chart-row"><span class="chart-label">F2 · 2-layer RAM</span><div class="chart-track"><span class="chart-bar" style="--bar-width: 98%"></span></div><strong>52.13</strong></div>
+        <div class="chart-row"><span class="chart-label">F3 · 3 kept</span><div class="chart-track"><span class="chart-bar" style="--bar-width: 94%"></span></div><strong>49.69</strong></div>
+        <div class="chart-row"><span class="chart-label">F4 · 4 kept</span><div class="chart-track"><span class="chart-bar" style="--bar-width: 95%"></span></div><strong>50.46</strong></div>
+        <div class="chart-row"><span class="chart-label">RAM · all weights</span><div class="chart-track chart-track--reference"><span class="chart-bar" style="--bar-width: 100%"></span></div><strong>53.07</strong></div>
+        <div class="chart-axis" aria-hidden="true"><span>0</span><span>53.07 tok/s · RAM</span></div>
+        <p id="rwkv-benchmark-caption" class="chart-caption">Streaming keeps model weights on SSD and reads layers as needed. F1–F4 are engine memory profiles: F1 reads each layer on demand, F2 keeps a two-layer working set, and F3/F4 keep three or four selected layers in RAM. RAM holds all weights. Native CPU test, 64 tokens, five samples. F1–F4 reached 94–98% of RAM speed.</p>
+      </figure>
+    </section>
+
+    <section class="project-section" aria-labelledby="rwkv-sessions-heading">
+      <div class="section-heading section-heading--row">
+        <div>
+          <p class="eyebrow">Another measured result</p>
+          <h2 id="rwkv-sessions-heading">Shared work helped serve several requests</h2>
+        </div>
+        <p class="chart-context">Warm CPU test · time saved when requests share model loading</p>
+      </div>
+      <figure class="benchmark-chart benchmark-chart--sessions" aria-labelledby="rwkv-sessions-chart-title rwkv-sessions-chart-caption">
+        <figcaption id="rwkv-sessions-chart-title">Combined completion speed</figcaption>
+        <div class="chart-row"><span class="chart-label">1 request</span><div class="chart-track"><span class="chart-bar chart-bar--teal" style="--bar-width: 26%"></span></div><strong>0.92×</strong></div>
+        <div class="chart-row"><span class="chart-label">2 requests</span><div class="chart-track"><span class="chart-bar chart-bar--teal" style="--bar-width: 55%"></span></div><strong>1.93×</strong></div>
+        <div class="chart-row"><span class="chart-label">4 requests</span><div class="chart-track"><span class="chart-bar chart-bar--teal" style="--bar-width: 100%"></span></div><strong>3.52×</strong></div>
+        <p id="rwkv-sessions-chart-caption" class="chart-caption">Compared with running the same requests one after another. Each request generated 16 tokens; text matched in every paired run.</p>
+      </figure>
+    </section>
+
+    <section class="project-section project-section--closing" aria-labelledby="rwkv-built-heading">
+      <div class="section-heading">
+        <p class="eyebrow">What I built</p>
+        <h2 id="rwkv-built-heading">From model files to a usable local tool</h2>
+      </div>
+      <div class="built-grid">
+        <article><span class="built-number">01</span><h3>Prepared models</h3><p>Tools turn a checkpoint into a portable pack that the engine can read in small pieces.</p></article>
+        <article><span class="built-number">02</span><h3>Checked the output</h3><p>Standard and streamed runs were compared to make sure the generated text stayed aligned.</p></article>
+        <article><span class="built-number">03</span><h3>Made it usable</h3><p>A local command line and API make the engine easy to try from a browser or another tool.</p></article>
+      </div>
+    </section>
+

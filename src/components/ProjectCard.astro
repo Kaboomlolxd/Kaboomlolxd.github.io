@@ -1,0 +1,52 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  href?: string;
+  tags?: string[];
+  featured?: boolean;
+  mediaSlots?: { kind: 'video' | 'image'; label: string; src?: string; alt?: string; wide?: boolean }[];
+  id?: string;
+}
+
+const { title, description, href, tags = [], featured = false, mediaSlots = [], id } = Astro.props;
+---
+
+<article id={id} class:list={['project-card', 'reveal-on-scroll', featured && 'project-card--featured']}>
+  <div class="project-card__content">
+    <h3>
+      {href ? <a href={href}>{title}</a> : title}
+    </h3>
+    <p>{description}</p>
+    {tags.length > 0 && (
+      <ul class="tag-list" aria-label={`${title} technologies`}>
+        {tags.map((tag) => <li>{tag}</li>)}
+      </ul>
+    )}
+  </div>
+
+  {mediaSlots.length > 0 && (
+    <div class="project-card__media">
+      {mediaSlots.map((slot) => (
+        <figure class:list={[
+          'project-media-slot',
+          slot.kind === 'video' && 'project-media-slot--video',
+          slot.wide && 'project-media-slot--wide',
+        ]}>
+          {slot.src && slot.kind === 'image' ? (
+            <img class="project-media-slot__image" src={slot.src} alt={slot.alt ?? slot.label} loading="lazy" />
+          ) : slot.src && slot.kind === 'video' ? (
+            <video class="project-media-slot__video" src={slot.src} controls playsinline preload="metadata" aria-label={slot.label}></video>
+          ) : (
+            <div class="project-media-slot__frame">
+              <span>{slot.kind === 'video' ? 'Video placeholder' : 'Image placeholder'}</span>
+            </div>
+          )}
+          <figcaption>{slot.label}</figcaption>
+        </figure>
+      ))}
+    </div>
+  )}
+
+  {href && <a class="project-card__link" href={href}>View project <span aria-hidden="true">→</span></a>}
+</article>

@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import ProjectContent from '../../components/project-content/RwkvProjectContent.astro';
+import '../../styles/global.css';
+---
+<BaseLayout title="RWKV SSD-streaming inference engine | Portfolio" description="A memory-conscious RWKV inference engine that loads model weights from SSD as needed.">
+  <Header />
+  <main id="main-content" class="project-page">
+    <a class="back-link" href="/#projects">← Back to projects</a>
+    <ProjectContent />
+  </main>
+  <Footer />
+</BaseLayout>
+<script>
+import '../../scripts/engine-demo';
+</script>

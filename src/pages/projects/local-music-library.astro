@@ -1,0 +1,15 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import ProjectContent from '../../components/project-content/LibraryProjectContent.astro';
+import '../../styles/global.css';
+---
+<BaseLayout title="Local Music Library | Portfolio" description="A local Windows music library for links, playlists, subscriptions, and playback.">
+  <Header />
+  <main id="main-content" class="project-page">
+    <a class="back-link" href="/#projects">← Back to projects</a>
+    <ProjectContent />
+  </main>
+  <Footer />
+</BaseLayout>
