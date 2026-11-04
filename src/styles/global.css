@@ -232,6 +232,12 @@ main,
   scroll-snap-type: y proximity;
 }
 
+.projects-grid--portfolio { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+.projects-grid--portfolio .project-card { display: flex; flex-direction: column; }
+.projects-grid--portfolio .project-card__content { flex: 1; }
+.projects-grid--portfolio .project-card__media { margin-top: 1.25rem; }
+.projects-grid--portfolio .project-media-slot__video { max-height: 22rem; }
+
 .project-details { min-width: 0; position: relative; }
 .project-detail {
   scroll-margin-top: 1.5rem;
@@ -813,6 +819,8 @@ main,
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
+
+  .projects-grid--portfolio { grid-template-columns: minmax(0, 1fr); }
 
   .projects-layout { display: block; }
   .project-index {

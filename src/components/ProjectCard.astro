@@ -12,7 +12,7 @@ interface Props {
 const { title, description, href, tags = [], featured = false, mediaSlots = [], id } = Astro.props;
 ---
 
-<article id={id} class:list={['project-card', 'reveal-on-scroll', featured && 'project-card--featured']}>
+<article id={id} class:list={['project-card', featured && 'project-card--featured']}>
   <div class="project-card__content">
     <h3>
       {href ? <a href={href}>{title}</a> : title}

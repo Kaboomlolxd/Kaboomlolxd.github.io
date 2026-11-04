@@ -2,95 +2,46 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import RwkvProjectContent from '../components/project-content/RwkvProjectContent.astro';
-import LibraryProjectContent from '../components/project-content/LibraryProjectContent.astro';
-import PianoProjectContent from '../components/project-content/PianoProjectContent.astro';
-import CombatLearningAgentProjectContent from '../components/project-content/CombatLearningAgentProjectContent.astro';
+import ProjectCard from '../components/ProjectCard.astro';
 import '../styles/global.css';
-
-const projects = [
-  { id: 'project-rwkv', title: 'RWKV SSD-streaming inference engine' },
-  { id: 'project-library', title: 'Local Music Library' },
-  { id: 'project-piano', title: 'MIDI Piano Rhythm Game' },
-  { id: 'project-combat', title: 'Combat Learning Agent' },
-];
 ---
 
-<BaseLayout title="My projects | Portfolio" description="Projects and demos for a language model inference engine, a local music library, a MIDI piano rhythm game, and a group reinforcement learning project.">
+<BaseLayout title="My projects | Portfolio" description="Selected software projects by Jincheng Shen.">
   <Header />
-
   <main id="main-content" class="project-browser">
     <section id="projects" class="content-section" aria-labelledby="projects-heading">
       <h1 id="projects-heading" class="projects-page-heading">My projects</h1>
-      <div class="projects-layout">
-        <nav class="project-index" aria-label="Project index">
-          <p class="project-index__label">Jump to</p>
-          <ol>
-            {projects.map((project, index) => (
-              <li>
-                <a href={`#${project.id}`} data-project-link={project.id}>
-                  <span>{String(index + 1).padStart(2, '0')}</span>
-                  {project.title}
-                </a>
-              </li>
-            ))}
-          </ol>
-        </nav>
-        <div class="project-details">
-          <article id="project-rwkv" class="project-detail"><RwkvProjectContent embedded /></article>
-          <article id="project-library" class="project-detail"><LibraryProjectContent embedded /></article>
-          <article id="project-piano" class="project-detail"><PianoProjectContent embedded /></article>
-          <article id="project-combat" class="project-detail"><CombatLearningAgentProjectContent embedded /></article>
-        </div>
+      <div class="projects-grid projects-grid--portfolio">
+        <ProjectCard
+          title="RWKV SSD-streaming inference engine"
+          description="An RWKV inference engine that streams model weights from SSD, using a manifest, bounded cache, and read-ahead path to keep memory use low."
+          href="/projects/rwkv-ssd/"
+          tags={['Python', 'C++', 'Inference', 'Storage']}
+          mediaSlots={[{ kind: 'video', src: '/media/rwkv-ssd-video-sample.mp4', label: 'RWKV SSD streaming walkthrough' }]}
+        />
+        <ProjectCard
+          title="Local Music Library"
+          description="A Windows music library for saved links and playlists, with SQLite storage, browser extension capture, and playback through a reused browser tab."
+          href="/projects/local-music-library/"
+          tags={['Windows', 'SQLite', 'Browser extension']}
+          mediaSlots={[{ kind: 'image', src: '/images/local-music-library-home.png', alt: 'Local Music Library dashboard and playback queue', label: 'Dashboard and queue' }]}
+        />
+        <ProjectCard
+          title="MIDI Piano Rhythm Game"
+          description="A MIDI rhythm game with Web MIDI and keyboard input, a Pixi falling-note renderer, and a local chart and practice history."
+          href="/projects/midi-piano-rhythm-game/"
+          tags={['TypeScript', 'Svelte', 'Pixi', 'Web MIDI']}
+          mediaSlots={[{ kind: 'video', src: '/media/piano-game-demo-web.mp4', label: 'MIDI Piano Rhythm Game demo' }]}
+        />
+        <ProjectCard
+          title="Combat Learning Agent"
+          description="A group project using Unreal Engine Learning Agents and PPO to train an agent against a rule-based melee combat opponent."
+          href="/projects/combat-learning-agent/"
+          tags={['Group project', 'Unreal Engine 5', 'C++', 'Reinforcement learning']}
+          mediaSlots={[{ kind: 'image', src: '/images/combat-learning-agent.jpg', alt: 'PPO interaction framework for the Combat Learning Agent', label: 'Agent interaction framework' }]}
+        />
       </div>
     </section>
-
   </main>
-
   <Footer />
 </BaseLayout>
-
-<script>
-  import '../scripts/engine-demo';
-</script>
-
-<script>
-  const cards = [...document.querySelectorAll<HTMLElement>('.project-detail')];
-  const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-project-link]')];
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  let frame = 0;
-  const updateProjects = () => {
-    frame = 0;
-    const viewportHeight = window.innerHeight;
-    const activationLine = viewportHeight * 0.42;
-    let activeIndex = 0;
-    cards.forEach((card, index) => {
-      const top = card.getBoundingClientRect().top;
-      if (top <= activationLine) activeIndex = index;
-      if (index === 0 || reducedMotion.matches) {
-        card.classList.remove('project-is-entering');
-        card.style.removeProperty('--project-entry');
-        return;
-      }
-      const progress = Math.max(0, Math.min(1, (viewportHeight - top) / (viewportHeight * 0.58)));
-      const entering = progress > 0 && progress < 1;
-      card.classList.toggle('project-is-entering', entering);
-      if (entering) card.style.setProperty('--project-entry', progress.toFixed(4));
-      else card.style.removeProperty('--project-entry');
-    });
-    links.forEach((link) => {
-      const active = link.dataset.projectLink === cards[activeIndex]?.id;
-      link.classList.toggle('is-active', active);
-      if (active) link.setAttribute('aria-current', 'location');
-      else link.removeAttribute('aria-current');
-    });
-  };
-  const requestUpdate = () => {
-    if (!frame) frame = requestAnimationFrame(updateProjects);
-  };
-  window.addEventListener('scroll', requestUpdate, { passive: true });
-  window.addEventListener('resize', requestUpdate, { passive: true });
-  reducedMotion.addEventListener('change', requestUpdate);
-  requestUpdate();
-</script>
-
