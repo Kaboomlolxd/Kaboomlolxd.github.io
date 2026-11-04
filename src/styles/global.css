@@ -234,9 +234,29 @@ main,
 .project-detail {
   scroll-margin-top: 1.5rem;
   border-bottom: 1px solid var(--line);
+  contain: layout paint;
 }
 .project-detail:last-child { border-bottom: 0; }
 .project-detail .project-hero { padding-top: 1rem; }
+.project-detail .project-hero__copy {
+  transform: translate3d(0, var(--parallax-y, 0px), 0);
+  transition: transform 120ms linear;
+  will-change: transform;
+}
+.project-detail .project-section > * {
+  animation: project-section-enter linear both;
+  animation-timeline: view();
+  animation-range: entry 0% cover 32%;
+}
+
+@keyframes project-section-enter {
+  from { opacity: 0.35; transform: translateY(2rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@supports not (animation-timeline: view()) {
+  .project-detail .project-section > * { animation: none; }
+}
 
 .combat-project-section { padding-block: 4rem; }
 .external-project-panel {
@@ -777,6 +797,7 @@ main,
   .project-index a:hover,
   .project-index a.is-active { transform: none; border-color: var(--purple); }
   .project-detail { scroll-margin-top: 5rem; }
+  .project-detail .project-hero__copy { transform: none; }
   .external-project-panel { align-items: flex-start; flex-direction: column; }
 
   .reveal-on-scroll { transform: translateY(0.75rem); }
@@ -858,6 +879,8 @@ main,
   html { scroll-behavior: auto; }
   .reveal-on-scroll { opacity: 1; transform: none; }
   .project-card, .project-index a { transition: none; }
+  .project-detail .project-hero__copy { transform: none; transition: none; }
+  .project-detail .project-section > * { animation: none; opacity: 1; transform: none; }
   .ssd-pack__layers i, .rwkv-layer, .state-visual span, .compute-stage { transition: none; animation: none; }
   .ssd-pack__layers span.is-reading i { animation: none; }
   .pipeline-connector span.is-moving { left: 50%; animation: none; opacity: 1; }
