@@ -136,6 +136,7 @@ if (root) {
     root.dataset.stage = stage;
     root.dataset.mode = state.mode;
     root.dataset.paused = String(state.paused);
+    root.dataset.running = String(state.running);
     text('[data-demo-mode-label]', config().label);
     text('[data-demo-token]', `#${state.token}${complete() ? ' · complete' : ''}`);
     text('[data-demo-layer]', `L${current} / ${layerCount}${state.stage === stages.length ? ' · done' : ''}`);

@@ -14,7 +14,6 @@ const TitleTag = embedded ? 'h2' : 'h1';
           I built a system that keeps the model's working state in memory and loads the rest from SSD as it is needed. It includes model setup tools, a local interface, and tests that compare the streamed version with a standard run.
         </p>
         <div class="project-actions">
-          {embedded && <a class="button" href="/projects/rwkv-ssd/">Open project page <span aria-hidden="true">↗</span></a>}
           <a class="button button--primary" href="https://github.com/Kaboomlolxd/SSD-RWKV-engine" target="_blank" rel="noreferrer">View source <span aria-hidden="true">↗</span></a>
           <a class="button" href="#rwkv-demo">See the demo</a>
         </div>
@@ -180,49 +179,52 @@ const TitleTag = embedded ? 'h2' : 'h1';
       <div class="section-heading section-heading--row">
         <div>
           <p class="eyebrow">Recorded benchmark</p>
-          <h2 id="rwkv-results-heading">SSD streaming stayed close to RAM speed</h2>
+        <h2 id="rwkv-results-heading">A small benchmark for the storage path</h2>
         </div>
-        <p class="chart-context">Warm CPU decode · 0.1B model</p>
+        <p class="chart-context">One controlled comparison · 0.1B model</p>
       </div>
 
-      <figure class="benchmark-chart" aria-labelledby="rwkv-benchmark-title rwkv-benchmark-caption">
-        <figcaption id="rwkv-benchmark-title">Warm decode speed · tokens per second</figcaption>
-        <div class="chart-row"><span class="chart-label">F1 · each layer</span><div class="chart-track"><span class="chart-bar" style="--bar-width: 96%"></span></div><strong>50.98</strong></div>
-        <div class="chart-row"><span class="chart-label">F2 · 2-layer RAM</span><div class="chart-track"><span class="chart-bar" style="--bar-width: 98%"></span></div><strong>52.13</strong></div>
-        <div class="chart-row"><span class="chart-label">F3 · 3 kept</span><div class="chart-track"><span class="chart-bar" style="--bar-width: 94%"></span></div><strong>49.69</strong></div>
-        <div class="chart-row"><span class="chart-label">F4 · 4 kept</span><div class="chart-track"><span class="chart-bar" style="--bar-width: 95%"></span></div><strong>50.46</strong></div>
-        <div class="chart-row"><span class="chart-label">RAM · all weights</span><div class="chart-track chart-track--reference"><span class="chart-bar" style="--bar-width: 100%"></span></div><strong>53.07</strong></div>
-        <div class="chart-axis" aria-hidden="true"><span>0</span><span>53.07 tok/s · RAM</span></div>
-        <p id="rwkv-benchmark-caption" class="chart-caption">Streaming keeps model weights on SSD and reads layers as needed. F1–F4 are engine memory profiles: F1 reads each layer on demand, F2 keeps a two-layer working set, and F3/F4 keep three or four selected layers in RAM. RAM holds all weights. Native CPU test, 64 tokens, five samples. F1–F4 reached 94–98% of RAM speed.</p>
-      </figure>
+      <div class="measurement" aria-labelledby="rwkv-benchmark-title">
+        <h3 id="rwkv-benchmark-title">Warm decode throughput</h3>
+        <div class="measurement__scroll"><table><thead><tr><th scope="col">Profile</th><th scope="col">Weight residency</th><th scope="col">Tokens/s</th></tr></thead><tbody>
+          <tr><th scope="row">F1</th><td>Read every layer on demand</td><td>50.98</td></tr>
+          <tr><th scope="row">F2</th><td>Two-layer working set</td><td>52.13</td></tr>
+          <tr><th scope="row">F3</th><td>Three selected layers retained</td><td>49.69</td></tr>
+          <tr><th scope="row">F4</th><td>Four selected layers retained</td><td>50.46</td></tr>
+          <tr class="measurement__reference"><th scope="row">RAM</th><td>All weights resident</td><td>53.07</td></tr>
+        </tbody></table></div>
+        <p>Native CPU, 0.1B model, 64 output tokens, five samples per profile. This compares residency strategies within one local setup; it does not establish performance across hardware or model sizes.</p>
+      </div>
     </section>
 
     <section class="project-section" aria-labelledby="rwkv-sessions-heading">
       <div class="section-heading section-heading--row">
         <div>
           <p class="eyebrow">Another measured result</p>
-          <h2 id="rwkv-sessions-heading">Shared work helped serve several requests</h2>
+        <h2 id="rwkv-sessions-heading">Shared loading changes the request curve</h2>
         </div>
-        <p class="chart-context">Warm CPU test · time saved when requests share model loading</p>
+        <p class="chart-context">Same model pack · concurrent local sessions</p>
       </div>
-      <figure class="benchmark-chart benchmark-chart--sessions" aria-labelledby="rwkv-sessions-chart-title rwkv-sessions-chart-caption">
-        <figcaption id="rwkv-sessions-chart-title">Combined completion speed</figcaption>
-        <div class="chart-row"><span class="chart-label">1 request</span><div class="chart-track"><span class="chart-bar chart-bar--teal" style="--bar-width: 26%"></span></div><strong>0.92×</strong></div>
-        <div class="chart-row"><span class="chart-label">2 requests</span><div class="chart-track"><span class="chart-bar chart-bar--teal" style="--bar-width: 55%"></span></div><strong>1.93×</strong></div>
-        <div class="chart-row"><span class="chart-label">4 requests</span><div class="chart-track"><span class="chart-bar chart-bar--teal" style="--bar-width: 100%"></span></div><strong>3.52×</strong></div>
-        <p id="rwkv-sessions-chart-caption" class="chart-caption">Compared with running the same requests one after another. Each request generated 16 tokens; text matched in every paired run.</p>
-      </figure>
+      <div class="measurement" aria-labelledby="rwkv-sessions-chart-title">
+        <h3 id="rwkv-sessions-chart-title">Combined completion speed</h3>
+        <div class="measurement__scroll"><table><thead><tr><th scope="col">Requests</th><th scope="col">Relative throughput</th><th scope="col">Comparison</th></tr></thead><tbody>
+          <tr><th scope="row">1</th><td>0.92×</td><td>Sequential baseline</td></tr>
+          <tr><th scope="row">2</th><td>1.93×</td><td>Shared weight loading</td></tr>
+          <tr><th scope="row">4</th><td>3.52×</td><td>Shared weight loading</td></tr>
+        </tbody></table></div>
+        <p>Warm CPU test, 16 generated tokens per request. Ratios compare combined completion with running the same requests sequentially; paired output text matched.</p>
+      </div>
     </section>
 
     <section class="project-section project-section--closing" aria-labelledby="rwkv-built-heading">
       <div class="section-heading">
         <p class="eyebrow">What I built</p>
-        <h2 id="rwkv-built-heading">From model files to a usable local tool</h2>
+        <h2 id="rwkv-built-heading">Implementation notes</h2>
       </div>
       <div class="built-grid">
-        <article><span class="built-number">01</span><h3>Prepared models</h3><p>Tools turn a checkpoint into a portable pack that the engine can read in small pieces.</p></article>
-        <article><span class="built-number">02</span><h3>Checked the output</h3><p>Standard and streamed runs were compared to make sure the generated text stayed aligned.</p></article>
-        <article><span class="built-number">03</span><h3>Made it usable</h3><p>A local command line and API make the engine easy to try from a browser or another tool.</p></article>
+        <article><span class="built-number">01</span><h3>Pack format</h3><p>Checkpoint tensors are indexed into a portable pack. The manifest records names, shapes, codec, offsets, and byte lengths so a layer can be fetched without loading its neighbours.</p></article>
+        <article><span class="built-number">02</span><h3>Residency policy</h3><p>A bounded cache owns retained layers while a staging buffer handles the active layer. Read-ahead is scheduled against the next manifest span and can be disabled for comparison.</p></article>
+        <article><span class="built-number">03</span><h3>Correctness boundary</h3><p>Streamed and resident paths are paired against the same token inputs. The comparison checks generated output and state progression while the backend changes underneath.</p></article>
       </div>
     </section>
 
