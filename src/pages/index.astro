@@ -57,19 +57,17 @@ const projects = [
 <script>
   const cards = [...document.querySelectorAll<HTMLElement>('.project-detail')];
   const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-project-link]')];
-  const heroes = [...document.querySelectorAll<HTMLElement>('.project-detail .project-hero__copy')];
+  const parallaxItems = [...document.querySelectorAll<HTMLElement>('.project-detail .project-hero__copy, .project-detail .engine-demo-video, .project-detail .project-gallery img')];
 
   let frame = 0;
   const updateParallax = () => {
     frame = 0;
     const viewportCenter = window.innerHeight * 0.5;
-    heroes.forEach((hero) => {
-      const project = hero.closest<HTMLElement>('.project-detail');
-      if (!project) return;
-      const bounds = project.getBoundingClientRect();
+    parallaxItems.forEach((item) => {
+      const bounds = item.getBoundingClientRect();
       if (bounds.bottom < -120 || bounds.top > window.innerHeight + 120) return;
-      const distance = (bounds.top + bounds.height * 0.16 - viewportCenter) * -0.055;
-      hero.style.setProperty('--parallax-y', `${Math.max(-22, Math.min(22, distance))}px`);
+      const distance = (bounds.top + bounds.height * 0.5 - viewportCenter) * -0.045;
+      item.style.setProperty('--parallax-y', `${Math.max(-20, Math.min(20, distance))}px`);
     });
   };
   const requestParallax = () => {
