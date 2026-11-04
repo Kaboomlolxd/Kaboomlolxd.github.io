@@ -1,24 +1,13 @@
 ---
 const { embedded = false } = Astro.props;
 const TitleTag = embedded ? 'h2' : 'h1';
-const features = [
-  ['MIDI normalization', 'Validated Standard MIDI files are converted into chart events before they enter the playable session.'],
-  ['Input adapters', 'Web MIDI, the local bridge, and keyboard fallback emit the same note-on, note-off, and timing event shape.'],
-  ['Pixi renderer', 'The falling-note view is a projection of chart and session state; it does not decide whether a note matches.'],
-  ['Session controls', 'Loop bounds, timing offset, strictness, retry, and autoplay modify session policy without changing chart data.'],
-  ['Judgement pipeline', 'Pitch, timing, held-note lifetime, and release state feed one scoring path for Standard and Expressive modes.'],
-  ['Local persistence', 'Charts, scores, preferences, themes, and practice history are stored locally without an account service.'],
-  ['Offline shell', 'The installable PWA reopens the application and previously stored charts when the network is unavailable.'],
-  ['Theme data', 'Palettes, skins, button frames, dimming, shortcuts, and motion preferences are read from local JSON themes.'],
-];
 ---
 <section class="project-hero" aria-labelledby="piano-project-heading">
       <div class="project-hero__copy">
         <p class="eyebrow">Project · Browser game</p>
         <TitleTag id="piano-project-heading" class="project-title">MIDI Piano Rhythm Game</TitleTag>
-        <p class="project-hero__lead">A desktop-first, local-first piano practice game that turns Standard MIDI charts into playable, reviewable sessions.</p>
-        <p>Import a chart, connect a piano through Web MIDI or the local bridge, and play through a Pixi falling-note playfield. The computer keyboard remains available as a fallback. Timing, pitch, and held notes enter one game-core scoring path, while Svelte and Pixi present the session without deciding whether a note matches.</p>
-        <p>Charts can carry backing audio and artwork. The local library keeps scores, settings, appearance, and practice history on the device, and the installable PWA can reopen saved charts offline.</p>
+        <p class="project-hero__lead">A rhythm game built around Standard MIDI charts and live piano input.</p>
+        <p>Web MIDI, a local bridge, and keyboard input feed one timing and scoring system. Pixi renders the falling notes while the game core handles note matching and held notes. Charts and practice history stay on the device.</p>
       </div>
     </section>
 
@@ -32,14 +21,4 @@ const features = [
       <p class="project-note">MIDI Piano Rhythm Game demo.</p>
     </section>
 
-    <section class="project-section" aria-labelledby="piano-features-heading">
-      <div class="section-heading"><p class="eyebrow">Systems</p><h2 id="piano-features-heading">Input, judgement, and rendering stay separate</h2></div>
-      <div class="built-grid">
-        {features.map(([title, copy], index) => <article><span class="built-number">{String(index + 1).padStart(2, '0')}</span><h3>{title}</h3><p>{copy}</p></article>)}
-      </div>
-    </section>
-
-    <section class="project-section project-section--closing" aria-labelledby="piano-architecture-heading">
-      <div class="section-heading"><p class="eyebrow">Architecture</p><h2 id="piano-architecture-heading">Gameplay stays in the core</h2><p>Input adapters normalize events before they reach the session. The piano ruleset owns note matching and held-note lifetime, the score processor owns results, and the renderer only presents judgements and playfield state. That separation keeps the practice loop testable as the app adds more input sources and chart features.</p></div>
-    </section>
 

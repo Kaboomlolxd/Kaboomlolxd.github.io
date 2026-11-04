@@ -7,34 +7,19 @@ const media = [
   { src: '/images/local-music-library-subscriptions.png', alt: 'Local Music Library subscriptions view.', label: 'Subscriptions' },
 ];
 
-const features = [
-  ['Metadata model', 'Track records combine source URL, title, artist, channel, rating, notes, saved state, and local playback metadata.'],
-  ['Queue state', 'The dashboard owns playlist and queue state while a reused browser tab handles playback and transport controls.'],
-  ['Subscription index', 'Channel subscriptions are represented as local records so saved links can be grouped without a remote account.'],
-  ['Extension boundary', 'A browser extension captures the current page and sends a small message to the local dashboard.'],
-  ['SQLite storage', 'The local database keeps the collection on the computer; export and backup paths keep it portable.'],
-  ['Query layer', 'Search and filters operate across title, artist, playlist, rating, channel, and saved state.'],
-];
 ---
 <section class="project-hero" aria-labelledby="library-project-heading">
       <div class="project-hero__copy">
         <p class="eyebrow">Project · Local desktop tool</p>
         <TitleTag id="library-project-heading" class="project-title">Local Music Library</TitleTag>
-        <p class="project-hero__lead">A Windows dashboard for keeping music links, playlists, and subscriptions in one place.</p>
-        <p>The app stores links and metadata locally, then uses a browser tab for playback. A companion extension saves links from video pages and sends playback controls back to the dashboard.</p>
+        <p class="project-hero__lead">A local music library for saved links, playlists, and subscriptions.</p>
+        <p>A browser extension captures YouTube and Bilibili pages. The Windows dashboard stores metadata in SQLite, manages the queue, and controls playback in a reused browser tab.</p>
         <div class="project-actions"><a class="button button--primary" href="https://github.com/Kaboomlolxd/Music-Library" target="_blank" rel="noreferrer">View source <span aria-hidden="true">↗</span></a></div>
       </div>
     </section>
 
-    <section class="project-section" aria-labelledby="library-features-heading">
-      <div class="section-heading"><p class="eyebrow">Systems</p><h2 id="library-features-heading">The boundaries between capture, storage, and playback</h2></div>
-      <div class="built-grid">
-        {features.map(([title, copy], index) => <article><span class="built-number">{String(index + 1).padStart(2, '0')}</span><h3>{title}</h3><p>{copy}</p></article>)}
-      </div>
-    </section>
-
     <section class="project-section project-section--closing" aria-labelledby="library-gallery-heading">
-      <div class="section-heading"><p class="eyebrow">Screens</p><h2 id="library-gallery-heading">The interface in use</h2></div>
+      <div class="section-heading"><h2 id="library-gallery-heading">Screens</h2></div>
       <div class="project-gallery">
         {media.map((item) => <figure><img src={item.src} alt={item.alt} loading="lazy" /><figcaption>{item.label}</figcaption></figure>)}
       </div>

@@ -7,12 +7,8 @@ const TitleTag = embedded ? 'h2' : 'h1';
       <div class="project-hero__copy">
         <p class="eyebrow">Project · 2026 – Present</p>
         <TitleTag id="rwkv-project-heading" class="project-title">RWKV SSD-streaming inference engine</TitleTag>
-        <p class="project-hero__lead">
-          Running a language model when the full model does not fit comfortably in memory.
-        </p>
-        <p>
-          I built a system that keeps the model's working state in memory and loads the rest from SSD as it is needed. It includes model setup tools, a local interface, and tests that compare the streamed version with a standard run.
-        </p>
+        <p class="project-hero__lead">An RWKV inference engine that streams model weights from SSD when they do not fit in RAM.</p>
+        <p>A manifest locates each layer in a model pack; a bounded cache and read-ahead path manage weight loading while recurrent state stays in memory. I compared streamed output with a resident run and exposed the engine through a local API.</p>
         <div class="project-actions">
           <a class="button button--primary" href="https://github.com/Kaboomlolxd/SSD-RWKV-engine" target="_blank" rel="noreferrer">View source <span aria-hidden="true">↗</span></a>
           <a class="button" href="#rwkv-demo">See the demo</a>
@@ -178,8 +174,8 @@ const TitleTag = embedded ? 'h2' : 'h1';
     <section class="project-section" aria-labelledby="rwkv-results-heading">
       <div class="section-heading section-heading--row">
         <div>
-          <p class="eyebrow">Recorded benchmark</p>
-        <h2 id="rwkv-results-heading">A small benchmark for the storage path</h2>
+          <p class="eyebrow">Measurement</p>
+        <h2 id="rwkv-results-heading">Weight loading</h2>
         </div>
         <p class="chart-context">One controlled comparison · 0.1B model</p>
       </div>
@@ -200,8 +196,8 @@ const TitleTag = embedded ? 'h2' : 'h1';
     <section class="project-section" aria-labelledby="rwkv-sessions-heading">
       <div class="section-heading section-heading--row">
         <div>
-          <p class="eyebrow">Another measured result</p>
-        <h2 id="rwkv-sessions-heading">Shared loading changes the request curve</h2>
+          <p class="eyebrow">Measurement</p>
+        <h2 id="rwkv-sessions-heading">Multiple requests</h2>
         </div>
         <p class="chart-context">Same model pack · concurrent local sessions</p>
       </div>
@@ -216,15 +212,4 @@ const TitleTag = embedded ? 'h2' : 'h1';
       </div>
     </section>
 
-    <section class="project-section project-section--closing" aria-labelledby="rwkv-built-heading">
-      <div class="section-heading">
-        <p class="eyebrow">What I built</p>
-        <h2 id="rwkv-built-heading">Implementation notes</h2>
-      </div>
-      <div class="built-grid">
-        <article><span class="built-number">01</span><h3>Pack format</h3><p>Checkpoint tensors are indexed into a portable pack. The manifest records names, shapes, codec, offsets, and byte lengths so a layer can be fetched without loading its neighbours.</p></article>
-        <article><span class="built-number">02</span><h3>Residency policy</h3><p>A bounded cache owns retained layers while a staging buffer handles the active layer. Read-ahead is scheduled against the next manifest span and can be disabled for comparison.</p></article>
-        <article><span class="built-number">03</span><h3>Correctness boundary</h3><p>Streamed and resident paths are paired against the same token inputs. The comparison checks generated output and state progression while the backend changes underneath.</p></article>
-      </div>
-    </section>
 
