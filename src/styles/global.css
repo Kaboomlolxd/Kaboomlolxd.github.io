@@ -28,7 +28,7 @@ body {
   color: var(--ink);
 }
 
-.geometry-canvas { position: fixed; z-index: 0; inset: 0; pointer-events: none; opacity: .72; }
+.geometry-canvas { position: fixed; z-index: 0; inset: 0; pointer-events: none; opacity: .9; }
 body > :not(.geometry-canvas) { position: relative; z-index: 1; }
 body { isolation: isolate; }
 
@@ -206,7 +206,7 @@ main,
 .projects-grid--portfolio .project-card { display: flex; flex-direction: column; }
 .projects-grid--portfolio .project-card__content { flex: 1; }
 .projects-grid--portfolio .project-card__media { margin-top: 1.25rem; }
-.projects-grid--portfolio .project-media-slot__video { max-height: 22rem; }
+.projects-grid--portfolio .project-media-slot__video { max-height: none; }
 
 .project-details { min-width: 0; position: relative; }
 .project-detail {
@@ -260,7 +260,8 @@ main,
   padding: 1.5rem;
   border: 1px solid var(--line);
   border-radius: 1.25rem;
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
   box-shadow: 0 1rem 3rem rgba(47, 49, 90, 0.06);
   scroll-margin-top: 2rem;
   scroll-snap-align: start;
@@ -315,7 +316,7 @@ main,
 
 .project-card__media {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
@@ -335,7 +336,7 @@ main,
 .project-media-slot__image {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
   object-position: top;
   border: 1px solid var(--line);
@@ -907,8 +908,9 @@ main,
 /* Unified monochrome treatment for legacy component styles. */
 :root, :root[data-theme='dark'] { color-scheme: dark; --ink: #fff; --muted: #b8b8b8; --line: #444; --surface: #080808; --page: #000; --purple: #fff; --blue: #fff; --green: #fff; background: #000; }
 body, :root[data-theme='dark'] body { background: #000; color: #fff; }
-.project-detail, .project-card, .external-project-panel, .engine-techniques article,
+.project-detail, .external-project-panel, .engine-techniques article,
 .architecture-mobile div, .project-gallery__placeholder, .project-media-slot__frame { background: #000; color: #fff; }
+.project-card { background: rgba(0, 0, 0, .5); }
 .project-card, .external-project-panel, .engine-demo, .demo-shell { box-shadow: none; }
 .project-card:hover, .project-index a:hover, .project-index a.is-active, .demo-mode:hover, .demo-mode.is-selected { border-color: #fff; }
 .button, .theme-toggle { border-color: #fff; background: #000; color: #fff; }
