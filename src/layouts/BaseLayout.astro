@@ -98,31 +98,89 @@ const {
           const aux=missing.length?resampleEdges(shape.points,missing,constructionCount):new Float32Array(constructionCount*6);
           return {...shape,main:resampleEdges(shape.points,shape.edges,mainCount),aux};
         });
+        let currentShape=Math.floor(shapes.length/2),targetShape=currentShape,morphStarted=0,morphProgress=1;
+        let morphFromMain=shapes[currentShape].main.slice(),morphFromAux=shapes[currentShape].aux.slice();
+        const workingMain=morphFromMain.slice(),workingAux=morphFromAux.slice();
+        const requestShape=index=>{
+          if(index===targetShape)return;
+          morphFromMain.set(workingMain);morphFromAux.set(workingAux);
+          targetShape=index;morphStarted=performance.now();morphProgress=reduced?1:0;
+          if(reduced){workingMain.set(shapes[index].main);workingAux.set(shapes[index].aux);currentShape=index;}
+        };
+        const updateMorph=now=>{
+          if(morphProgress<1){
+            morphProgress=Math.min(1,(now-morphStarted)/175);
+            const eased=morphProgress*morphProgress*(3-2*morphProgress),target=shapes[targetShape];
+            for(let i=0;i<workingMain.length;i++)workingMain[i]=morphFromMain[i]+(target.main[i]-morphFromMain[i])*eased;
+            for(let i=0;i<workingAux.length;i++)workingAux[i]=morphFromAux[i]+(target.aux[i]-morphFromAux[i])*eased;
+            if(morphProgress===1)currentShape=targetShape;
+          }
+        };
+        const continents = [
+          [[-168,70],[-145,72],[-126,60],[-113,54],[-99,49],[-83,46],[-63,52],[-55,45],[-73,26],[-82,9],[-97,16],[-105,26],[-117,33],[-124,46],[-145,57],[-160,60]],
+          [[-81,12],[-69,10],[-53,3],[-42,-10],[-50,-22],[-56,-34],[-68,-55],[-74,-42],[-70,-22],[-79,-5]],
+          [[-11,36],[-8,51],[4,58],[19,60],[31,69],[47,60],[60,54],[78,71],[104,60],[128,60],[151,60],[167,59],[159,49],[139,42],[121,23],[108,8],[96,6],[83,22],[68,25],[58,36],[47,39],[40,31],[30,35],[20,40],[10,36]],
+          [[-18,35],[2,37],[21,32],[34,19],[43,8],[39,-8],[30,-23],[18,-35],[10,-34],[1,-18],[-9,-2],[-16,14]],
+          [[112,-11],[132,-10],[153,-19],[150,-38],[135,-44],[115,-34]],
+          [[-52,60],[-40,80],[-28,72],[-34,60],[-46,59]],
+          [[47,-13],[50,-18],[49,-25],[45,-22]],
+        ];
+        const globePoint=(lon,lat,rotation,tilt)=>{
+          const longitude=(lon*Math.PI/180)+rotation,latitude=lat*Math.PI/180,cosLatitude=Math.cos(latitude);
+          const x=cosLatitude*Math.sin(longitude),z=cosLatitude*Math.cos(longitude),y=Math.sin(latitude);
+          return [x,y*Math.cos(tilt)-z*Math.sin(tilt),y*Math.sin(tilt)+z*Math.cos(tilt)];
+        };
+        const drawGlobeCurve=(points,cx,cy,radius)=>{
+          let drawing=false;
+          for(let i=0;i<points.length;i++) {
+            const point=points[i];
+            if(point[2]>0) {
+              const x=cx+point[0]*radius,y=cy-point[1]*radius;
+              if(!drawing){backCtx.moveTo(x,y);drawing=true;}else backCtx.lineTo(x,y);
+            } else drawing=false;
+          }
+        };
         const drawBackdrop = () => {
           backCtx.clearRect(0,0,width,height);
-          const step=Math.max(66,Math.min(96,Math.min(width,height)*.105)), rowGap=step*.48;
-          const rows=Math.ceil(height/rowGap)+5,cols=Math.ceil(width/step)+5;
-          backCtx.lineWidth=.9;backCtx.strokeStyle='rgba(255,255,255,.105)';backCtx.beginPath();
-          for(let row=-3;row<rows;row++) {
-            const y=row*rowGap-step,stagger=(Math.abs(row)%2)*step*.5;
-            for(let col=-3;col<cols;col++) {
-              const x=col*step+stagger-step;
-              const asym=(Math.sin(col*1.71+row*.93+time*.18)+Math.sin(col*.43-row*.76-time*.12)*.35)*step*.045;
-              const depth=step*(.48+Math.sin(col*.83-row*.57+time*.15)*.035);
-              backCtx.moveTo(x,y);
-              backCtx.bezierCurveTo(x+step*.19+asym,y+depth*.72,x+step*.79+asym,y+depth*1.08,x+step,y);
+          const minSide=Math.min(width,height),radius=minSide*.39;
+          const cx=width*.57+(pointerX-.5)*width*.045,cy=height*.51+(pointerY-.5)*height*.025;
+          const rotation=time*.045+(pointerX-.5)*Math.PI*1.7,tilt=(pointerY-.5)*.72;
+          const atmosphere=backCtx.createRadialGradient(cx-radius*.72,cy-radius*.78,radius*.04,cx,cy,radius*1.18);
+          atmosphere.addColorStop(0,'rgba(80,150,255,.15)');atmosphere.addColorStop(.68,'rgba(50,100,190,.08)');atmosphere.addColorStop(1,'rgba(55,80,150,0)');
+          backCtx.fillStyle=atmosphere;backCtx.beginPath();backCtx.arc(cx,cy,radius*1.18,0,Math.PI*2);backCtx.fill();
+          const ocean=backCtx.createRadialGradient(cx-radius*.35,cy-radius*.48,radius*.04,cx+radius*.18,cy+radius*.12,radius*1.12);
+          ocean.addColorStop(0,'#142b49');ocean.addColorStop(.55,'#09182b');ocean.addColorStop(1,'#02050b');
+          backCtx.fillStyle=ocean;backCtx.beginPath();backCtx.arc(cx,cy,radius,0,Math.PI*2);backCtx.fill();
+          backCtx.save();backCtx.beginPath();backCtx.arc(cx,cy,radius,0,Math.PI*2);backCtx.clip();
+          const landFill=backCtx.createLinearGradient(cx-radius,cy-radius,cx+radius,cy+radius);
+          landFill.addColorStop(0,'rgba(99,152,147,.86)');landFill.addColorStop(.48,'rgba(62,118,114,.9)');landFill.addColorStop(1,'rgba(34,74,85,.85)');
+          backCtx.fillStyle=landFill;backCtx.strokeStyle='rgba(194,220,215,.42)';backCtx.lineWidth=1;
+          for(const polygon of continents) {
+            let points=polygon.map(([lon,lat])=>globePoint(lon,lat,rotation,tilt));
+            const clipped=[];
+            for(let i=0;i<points.length;i++) {
+              const a=points[i],b=points[(i+1)%points.length],aVisible=a[2]>=0,bVisible=b[2]>=0;
+              if(aVisible) clipped.push(a);
+              if(aVisible!==bVisible) {const t=a[2]/(a[2]-b[2]);clipped.push(a.map((v,k)=>v+(b[k]-v)*t));}
             }
+            if(clipped.length<3) continue;
+            backCtx.beginPath();backCtx.moveTo(cx+clipped[0][0]*radius,cy-clipped[0][1]*radius);
+            for(const point of clipped.slice(1))backCtx.lineTo(cx+point[0]*radius,cy-point[1]*radius);
+            backCtx.closePath();backCtx.fill();backCtx.stroke();
+          }
+          backCtx.strokeStyle='rgba(160,202,229,.19)';backCtx.lineWidth=.7;backCtx.beginPath();
+          for(let lat=-60;lat<=60;lat+=30) {
+            const line=[];for(let lon=-180;lon<=180;lon+=5)line.push(globePoint(lon,lat,rotation,tilt));drawGlobeCurve(line,cx,cy,radius);
+          }
+          for(let lon=-150;lon<=180;lon+=30) {
+            const line=[];for(let lat=-90;lat<=90;lat+=4)line.push(globePoint(lon,lat,rotation,tilt));drawGlobeCurve(line,cx,cy,radius);
           }
           backCtx.stroke();
-          backCtx.lineWidth=.65;backCtx.strokeStyle='rgba(255,255,255,.065)';backCtx.beginPath();
-          for(let row=-3;row<rows;row++) for(let col=-3;col<cols;col++) {
-            if((row*7+col)%6!==0) continue;
-            const x=col*step+(Math.abs(row)%2)*step*.5-step,y=row*rowGap-step;
-            const asym=(Math.sin(col*1.71+row*.93+time*.18)+Math.sin(col*.43-row*.76-time*.12)*.35)*step*.045,depth=step*.48;
-            backCtx.moveTo(x+step*.31,y+depth*.57);
-            backCtx.quadraticCurveTo(x+step*.48+asym,y+depth*(.79+Math.sin(time*.18+col*.6+row*.4)*.025),x+step*.69,y+depth*.54);
-          }
-          backCtx.stroke();
+          const shade=backCtx.createLinearGradient(cx-radius,cy,cx+radius,cy);
+          shade.addColorStop(0,'rgba(0,0,0,.02)');shade.addColorStop(.62,'rgba(0,0,0,.08)');shade.addColorStop(1,'rgba(0,0,0,.74)');
+          backCtx.fillStyle=shade;backCtx.beginPath();backCtx.arc(cx,cy,radius,0,Math.PI*2);backCtx.fill();
+          backCtx.restore();
+          backCtx.strokeStyle='rgba(146,190,255,.36)';backCtx.lineWidth=1.1;backCtx.beginPath();backCtx.arc(cx,cy,radius,0,Math.PI*2);backCtx.stroke();
         };
         const updateColor = () => {
           const position=Math.max(0,Math.min(1,pointerX))*(palette.length-1),index=Math.floor(position),mix=position-index;
@@ -136,7 +194,8 @@ const {
           dpr = Math.min(devicePixelRatio || 1, 1);
           width = innerWidth; height = innerHeight;
           const minSide=Math.min(width,height);
-          shapeSize=minSide*.72;glowSize=minSide*.9;
+          shapeSize=minSide*.52;glowSize=minSide*.9;
+          dpr=Math.min(devicePixelRatio||1,.82);
           canvas.width=shapeSize*dpr;canvas.height=shapeSize*dpr;
           canvas.style.width=`${shapeSize}px`;canvas.style.height=`${shapeSize}px`;
           ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -150,30 +209,26 @@ const {
           const x1=x*cosY+z*sinY,z1=-x*sinY+z*cosY;
           const y1=y*cosX-z1*sinX,z2=y*sinX+z1*cosX;
           const perspective=4.8/(4.8+z2*.16);
-          return [cx+x1*radius*perspective,cy+y1*radius*perspective];
+          return [cx+x1*radius*perspective,cy+y1*radius*perspective,z2];
         };
-        const strokeMorph = (first,second,mix,cx,cy,radius,cosY,sinY,cosX,sinX,alpha,widthPx) => {
+        const strokeSegments = (segments,cx,cy,radius,cosY,sinY,cosX,sinX,alpha,widthPx) => {
           ctx.strokeStyle=`rgba(255,255,255,${alpha})`;ctx.lineWidth=widthPx;ctx.beginPath();
-          for(let i=0;i<first.length;i+=6) {
-            const ax=first[i]+(second[i]-first[i])*mix,ay=first[i+1]+(second[i+1]-first[i+1])*mix,az=first[i+2]+(second[i+2]-first[i+2])*mix;
-            const bx=first[i+3]+(second[i+3]-first[i+3])*mix,by=first[i+4]+(second[i+4]-first[i+4])*mix,bz=first[i+5]+(second[i+5]-first[i+5])*mix;
-            const a=project(ax,ay,az,cx,cy,radius,cosY,sinY,cosX,sinX),b=project(bx,by,bz,cx,cy,radius,cosY,sinY,cosX,sinX);
+          for(let i=0;i<segments.length;i+=6) {
+            const a=project(segments[i],segments[i+1],segments[i+2],cx,cy,radius,cosY,sinY,cosX,sinX),b=project(segments[i+3],segments[i+4],segments[i+5],cx,cy,radius,cosY,sinY,cosX,sinX);
             ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);
           }
           ctx.stroke();
         };
         const drawDiagram = () => {
-          const minSide=Math.min(width,height),radius=minSide*.205,cx=shapeSize*.5,cy=shapeSize*.5;
+          const minSide=Math.min(width,height),radius=minSide*.15,cx=shapeSize*.5,cy=shapeSize*.5;
           const followPixelX=Math.max(radius*1.3,Math.min(width-radius*1.3,followX*width));
           const followPixelY=Math.max(radius*1.5,Math.min(height-radius*1.5,followY*height));
           const shapeTransform=`translate3d(${followPixelX-cx}px,${followPixelY-cy}px,0)`;
           canvas.style.transform=shapeTransform;
           glow.style.transform=`translate3d(${followPixelX-glowSize*.5}px,${followPixelY-glowSize*.5}px,0)`;
-          const angleY=time*.12+(pointerX-.5)*.38,angleX=Math.sin(time*.08)*.055+(pointerY-.5)*.18;
+          const angleY=time*.1+(pointerX-.5)*.24,angleX=Math.sin(time*.07)*.07+(pointerY-.5)*.3;
           const cosY=Math.cos(angleY),sinY=Math.sin(angleY),cosX=Math.cos(angleX),sinX=Math.sin(angleX);
-          const shapePosition=pointerX*(shapes.length-1),from=Math.min(shapes.length-1,Math.floor(shapePosition));
-          const to=Math.min(shapes.length-1,from+1),mix=shapePosition-from;
-          const eased=mix*mix*(3-2*mix),first=shapes[from],second=shapes[to];
+          updateMorph(performance.now());
           ctx.clearRect(0,0,shapeSize,shapeSize);
           ctx.lineWidth=.9;ctx.strokeStyle='rgba(255,255,255,.12)';ctx.beginPath();
           const basePoints=metatronPoints.map(point=>project(point[0],point[1],point[2],cx,cy,radius,cosY,sinY,cosX,sinX));
@@ -190,17 +245,25 @@ const {
             }
             ctx.closePath();ctx.stroke();
           }
-          strokeMorph(first.aux,second.aux,eased,cx,cy,radius,cosY,sinY,cosX,sinX,.22,.9);
-          strokeMorph(first.main,second.main,eased,cx,cy,radius,cosY,sinY,cosX,sinX,.76,1.3);
-          const label=eased<.5?first.name:second.name;
+          strokeSegments(workingAux,cx,cy,radius,cosY,sinY,cosX,sinX,.16,.8);
+          strokeSegments(workingMain,cx,cy,radius,cosY,sinY,cosX,sinX,.86,1.35);
+          const orbPoints=metatronPoints.map(point=>project(point[0],point[1],point[2],cx,cy,radius,cosY,sinY,cosX,sinX)).sort((a,b)=>a[2]-b[2]);
+          for(const [ox,oy,depth] of orbPoints) {
+            const orbRadius=2.2+Math.max(-.5,depth)*1.4;
+            const orb=ctx.createRadialGradient(ox-orbRadius*.35,oy-orbRadius*.4,orbRadius*.05,ox,oy,orbRadius);
+            orb.addColorStop(0,'rgba(255,255,255,.96)');orb.addColorStop(.28,'rgba(180,215,255,.68)');orb.addColorStop(1,'rgba(50,100,175,.08)');
+            ctx.fillStyle=orb;ctx.beginPath();ctx.arc(ox,oy,orbRadius,0,Math.PI*2);ctx.fill();
+          }
+          const label=shapes[currentShape].name;
           ctx.fillStyle='rgba(255,255,255,.63)';ctx.font=`500 ${Math.max(10,Math.min(13,minSide*.016))}px system-ui,sans-serif`;
           ctx.textAlign='center';ctx.fillText(label.toUpperCase(),cx,cy+radius*1.34);
         };
         const draw=()=>drawDiagram();
         const move = event => {
           pointerX = event.clientX / innerWidth; pointerY = event.clientY / innerHeight;
+          requestShape(Math.min(shapes.length-1,Math.floor(pointerX*shapes.length)));
           updateColor();
-          if (reduced) {followX=pointerX;followY=pointerY;draw();}
+          if (reduced) {followX=pointerX;followY=pointerY;drawBackdrop();draw();}
         };
         const animate=now=>{
           if(document.hidden){frame=0;return;}
@@ -217,6 +280,7 @@ const {
         addEventListener('resize', resize);
         addEventListener('pointermove', move, { passive: true });
         document.addEventListener('visibilitychange',()=>document.hidden?stop():start());
+        requestShape(Math.min(shapes.length-1,Math.floor(pointerX*shapes.length)));
         updateColor();
         resize();
         start();
