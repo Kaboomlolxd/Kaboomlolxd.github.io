@@ -29,23 +29,69 @@ const {
         const ctx = canvas?.getContext('2d');
         if (!ctx) return;
         const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-        let width = 0, height = 0, dpr = 1, pointerX = .5, pointerY = .5, frame, lastFrame = 0;
+        let width = 0, height = 0, dpr = 1, pointerX = .5, pointerY = .5;
+        let followX = .5, followY = .5, frame, lastFrame = 0, time = 0;
         const phi = (1 + Math.sqrt(5)) / 2;
-        const solids = [
-          { name: 'Tetrahedron', points: [[1,1,1],[-1,-1,1],[-1,1,-1],[1,-1,-1]] },
-          { name: 'Cube', points: Array.from({length: 8}, (_, i) => [i&1 ? 1 : -1, i&2 ? 1 : -1, i&4 ? 1 : -1]) },
-          { name: 'Octahedron', points: [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]] },
-          { name: 'Icosahedron', points: [[0,1,phi],[0,-1,phi],[0,1,-phi],[0,-1,-phi],[1,phi,0],[-1,phi,0],[1,-phi,0],[-1,-phi,0],[phi,0,1],[-phi,0,1],[phi,0,-1],[-phi,0,-1]] },
-          { name: 'Dodecahedron', points: [...Array.from({length:8},(_,i)=>[i&1?1:-1,i&2?1:-1,i&4?1:-1]), ...[-1,1].flatMap(a=>[-1,1].flatMap(b=>[[0,a/phi,b*phi],[a/phi,b*phi,0],[a*phi,0,b/phi]]))] },
-        ].map(solid => {
-          const distances = solid.points.flatMap((a,i) => solid.points.slice(i+1).map(b => Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2])));
-          const edge = Math.min(...distances);
+        const distance = (a, b) => Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]);
+        const connectNearest = points => {
+          const lengths = points.flatMap((a,i) => points.slice(i+1).map(b => distance(a,b)));
+          const shortest = Math.min(...lengths);
           const edges = [];
-          solid.points.forEach((a,i) => solid.points.slice(i+1).forEach((b,j) => {
-            if (Math.abs(Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2])-edge) < .001) edges.push([i,i+j+1]);
+          points.forEach((a,i) => points.slice(i+1).forEach((b,j) => {
+            if (Math.abs(distance(a,b)-shortest) < .001) edges.push([i,i+j+1]);
           }));
-          return {...solid, edges};
+          return edges;
+        };
+        const metatronPoints = [[0,0,0]];
+        for (const ring of [.5,1]) for (let i=0;i<6;i++) {
+          const a=i*Math.PI/3-Math.PI/2;
+          metatronPoints.push([Math.cos(a)*ring,Math.sin(a)*ring,0]);
+        }
+        const metatronEdges = metatronPoints.flatMap((_,i) => metatronPoints.slice(i+1).map((__,j) => [i,i+j+1]));
+        const definitions = [
+          {name:"Metatron's Cube",points:metatronPoints,edges:metatronEdges},
+          {name:'Tetrahedron',points:[[1,1,1],[-1,-1,1],[-1,1,-1],[1,-1,-1]]},
+          {name:'Hexahedron',points:Array.from({length:8},(_,i)=>[i&1?1:-1,i&2?1:-1,i&4?1:-1])},
+          {name:'Octahedron',points:[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]},
+          {name:'Icosahedron',points:[[0,1,phi],[0,-1,phi],[0,1,-phi],[0,-1,-phi],[1,phi,0],[-1,phi,0],[1,-phi,0],[-1,-phi,0],[phi,0,1],[-phi,0,1],[phi,0,-1],[-phi,0,-1]]},
+          {name:'Dodecahedron',points:[...Array.from({length:8},(_,i)=>[i&1?1:-1,i&2?1:-1,i&4?1:-1]),...[-1,1].flatMap(a=>[-1,1].flatMap(b=>[[0,a/phi,b*phi],[a/phi,b*phi,0],[a*phi,0,b/phi]]))]},
+        ].map(shape => {
+          const extent=Math.max(...shape.points.map(point=>Math.hypot(...point)));
+          const points=shape.points.map(point=>point.map(value=>value/extent));
+          return {...shape,points,edges:shape.edges??connectNearest(points)};
         });
+        const resampleEdges = (points, edges, count) => {
+          const ordered = edges.map(([a,b])=>[points[a],points[b]]).sort((a,b)=>{
+            const aa=Math.atan2((a[0][1]+a[1][1])/2,(a[0][0]+a[1][0])/2);
+            const ab=Math.atan2((b[0][1]+b[1][1])/2,(b[0][0]+b[1][0])/2);
+            return aa-ab || distance(a[0],a[1])-distance(b[0],b[1]);
+          });
+          const lengths=ordered.map(([a,b])=>distance(a,b)),total=lengths.reduce((sum,n)=>sum+n,0);
+          const allotments=lengths.map(length=>1+Math.floor((count-ordered.length)*length/total));
+          let remaining=count-allotments.reduce((sum,n)=>sum+n,0);
+          lengths.map((length,i)=>({i,remainder:(count-ordered.length)*length/total%1})).sort((a,b)=>b.remainder-a.remainder).slice(0,remaining).forEach(({i})=>allotments[i]++);
+          const segments=[];
+          ordered.forEach(([a,b],edgeIndex)=>{
+            const pieces=allotments[edgeIndex];
+            for(let part=0;part<pieces;part++) {
+              const start=part/pieces,end=(part+1)/pieces;
+              segments.push([a.map((v,k)=>v+(b[k]-v)*start),a.map((v,k)=>v+(b[k]-v)*end)]);
+            }
+          });
+          return segments;
+        };
+        const mainCount=84,constructionCount=84;
+        const shapes=definitions.map(shape=>{
+          const missing=[];
+          shape.points.forEach((_,i)=>shape.points.slice(i+1).forEach((__,j)=>{
+            const other=i+j+1;
+            if(!shape.edges.some(([a,b])=>(a===i&&b===other)||(a===other&&b===i))) missing.push([i,other]);
+          }));
+          const aux=missing.length?resampleEdges(shape.points,missing,constructionCount):Array.from({length:constructionCount},()=>[[0,0,0],[0,0,0]]);
+          return {...shape,main:resampleEdges(shape.points,shape.edges,mainCount),aux};
+        });
+        const lerp=(a,b,t)=>a+(b-a)*t;
+        const lerpSegment=(a,b,t)=>[a.map((v,i)=>lerp(v,b[0][i],t)),a[1].map((v,i)=>lerp(v,b[1][i],t))];
         const resize = () => {
           dpr = Math.min(devicePixelRatio || 1, 2);
           width = innerWidth; height = innerHeight;
@@ -54,80 +100,118 @@ const {
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
           draw();
         };
+        const drawLattice = () => {
+          const step=Math.max(42,Math.min(76,Math.min(width,height)*.105));
+          const rows=Math.ceil(height/(step*.82))+3,cols=Math.ceil(width/step)+3;
+          const points=new Map();
+          const key=(q,r)=>`${q},${r}`;
+          const node=(q,r)=>{
+            const id=key(q,r);
+            if(points.has(id)) return points.get(id);
+            const x=(q+r*.5)*step-step, y=r*step*.82-step;
+            const wiggle=step*.035;
+            const p=[x+Math.sin(q*.73+r*.39+time*.24)*wiggle,y+Math.cos(q*.31-r*.81+time*.19)*wiggle];
+            points.set(id,p);return p;
+          };
+          ctx.lineWidth=.85;ctx.strokeStyle='rgba(255,255,255,.075)';
+          for(let r=-1;r<rows;r++) for(let q=-2;q<cols;q++) {
+            const a=node(q,r);
+            for(const [dq,dr,direction] of [[1,0,0],[0,1,1],[1,-1,2]]) {
+              const b=node(q+dq,r+dr),dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy)||1;
+              const amount=step*(.055+Math.sin(time*.31+q*.48+r*.67+direction)*.025);
+              const sign=Math.sin(q*.37-r*.53+direction*1.7)>0?1:-1;
+              const cx=(a[0]+b[0])*.5-dy/length*amount*sign;
+              const cy=(a[1]+b[1])*.5+dx/length*amount*sign;
+              ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.quadraticCurveTo(cx,cy,b[0],b[1]);ctx.stroke();
+            }
+            if((q-r)%4===0) {
+              const phase=time*.22+q*.51+r*.33;
+              const arm=step*.24;
+              ctx.strokeStyle='rgba(255,255,255,.045)';
+              for(const side of [-1,1]) {
+                const angle=phase+side*.82;
+                ctx.beginPath();ctx.moveTo(a[0],a[1]);
+                ctx.quadraticCurveTo(a[0]+Math.cos(angle)*arm*.55,a[1]+Math.sin(angle)*arm*.55,a[0]+Math.cos(angle)*arm,a[1]+Math.sin(angle)*arm);
+                ctx.stroke();
+              }
+              ctx.strokeStyle='rgba(255,255,255,.075)';
+            }
+            if((q+r)%3===0) {
+              ctx.strokeStyle='rgba(255,255,255,.032)';
+              ctx.beginPath();
+              ctx.ellipse(a[0],a[1],step*.48,step*.34,Math.sin(time*.17+q*.2+r*.27)*.07,0,Math.PI*2);
+              ctx.stroke();
+              ctx.strokeStyle='rgba(255,255,255,.075)';
+            }
+          }
+        };
+        const project = (point,cx,cy,radius,angleY,angleX) => {
+          let [x,y,z]=point;
+          const x1=x*Math.cos(angleY)+z*Math.sin(angleY),z1=-x*Math.sin(angleY)+z*Math.cos(angleY);
+          const y1=y*Math.cos(angleX)-z1*Math.sin(angleX),z2=y*Math.sin(angleX)+z1*Math.cos(angleX);
+          const perspective=3.6/(3.6+z2*.33);
+          return [cx+x1*radius*perspective,cy+y1*radius*perspective];
+        };
+        const strokeSegments=(segments,cx,cy,radius,angleY,angleX,alpha,widthPx) => {
+          ctx.strokeStyle=`rgba(255,255,255,${alpha})`;ctx.lineWidth=widthPx;ctx.beginPath();
+          for(const [a,b] of segments) {
+            const start=project(a,cx,cy,radius,angleY,angleX),end=project(b,cx,cy,radius,angleY,angleX);
+            ctx.moveTo(start[0],start[1]);ctx.lineTo(end[0],end[1]);
+          }
+          ctx.stroke();
+        };
+        const drawDiagram = () => {
+          const minSide=Math.min(width,height),radius=minSide*.205;
+          const cx=Math.max(radius*1.3,Math.min(width-radius*1.3,followX*width));
+          const cy=Math.max(radius*1.5,Math.min(height-radius*1.5,followY*height));
+          const angleY=time*.22+(pointerX-.5)*.9,angleX=Math.sin(time*.14)*.12+(pointerY-.5)*.55;
+          const shapePosition=pointerX*(shapes.length-1),from=Math.min(shapes.length-1,Math.floor(shapePosition));
+          const to=Math.min(shapes.length-1,from+1),mix=shapePosition-from;
+          const eased=mix*mix*(3-2*mix),first=shapes[from],second=shapes[to];
+          const basePoints=metatronPoints.map(point=>project(point,cx,cy,radius,angleY,angleX));
+          ctx.lineWidth=.9;ctx.strokeStyle='rgba(255,255,255,.065)';ctx.beginPath();
+          for(let i=0;i<basePoints.length;i++)for(let j=i+1;j<basePoints.length;j++){
+            ctx.moveTo(...basePoints[i]);ctx.lineTo(...basePoints[j]);
+          }
+          ctx.stroke();
+          ctx.strokeStyle='rgba(255,255,255,.11)';ctx.lineWidth=.85;
+          for(const center of metatronPoints) {
+            ctx.beginPath();
+            for(let i=0;i<=32;i++) {
+              const a=i*Math.PI*2/32,point=[center[0]+Math.cos(a)*.25,center[1]+Math.sin(a)*.25,center[2]];
+              const projected=project(point,cx,cy,radius,angleY,angleX);
+              i?ctx.lineTo(...projected):ctx.moveTo(...projected);
+            }
+            ctx.closePath();ctx.stroke();
+          }
+          const main=first.main.map((segment,i)=>lerpSegment(segment,second.main[i],eased));
+          const aux=first.aux.map((segment,i)=>lerpSegment(segment,second.aux[i],eased));
+          strokeSegments(aux,cx,cy,radius,angleY,angleX,.14,.8);
+          strokeSegments(main,cx,cy,radius,angleY,angleX,.57,1.25);
+          const label=eased<.5?first.name:second.name;
+          ctx.fillStyle='rgba(255,255,255,.63)';ctx.font=`500 ${Math.max(10,Math.min(13,minSide*.016))}px system-ui,sans-serif`;
+          ctx.textAlign='center';ctx.fillText(label.toUpperCase(),cx,cy+radius*1.34);
+        };
         const draw = () => {
           ctx.clearRect(0, 0, width, height);
-          const minSide = Math.min(width, height);
-          const x = width * (.5 + (pointerX - .5) * .04), y = height * (.48 + (pointerY - .5) * .035);
-          const radius = minSide * .22, spin = (pointerX - .5) * .5;
-          const centers = [[x,y]];
-          for (let ring = 1; ring <= 2; ring++) for (let i = 0; i < 6; i++) {
-            const a = i * Math.PI / 3 + spin - Math.PI / 2;
-            centers.push([x + Math.cos(a) * radius * ring, y + Math.sin(a) * radius * ring]);
-          }
-          ctx.lineWidth = 1;
-          ctx.strokeStyle = 'rgba(255,255,255,.10)';
-          centers.forEach(([cx,cy]) => {
-            ctx.beginPath(); ctx.arc(cx,cy,radius * .48,0,Math.PI*2); ctx.stroke();
-          });
-          ctx.strokeStyle = 'rgba(255,255,255,.13)';
-          for (let i=0;i<centers.length;i++) for(let j=i+1;j<centers.length;j++) {
-            const d = Math.hypot(centers[i][0]-centers[j][0],centers[i][1]-centers[j][1]);
-            if(d < radius * 1.02) { ctx.beginPath(); ctx.moveTo(...centers[i]); ctx.lineTo(...centers[j]); ctx.stroke(); }
-          }
-          const pattern = Math.floor(pointerX * 3);
-          if (pattern === 0) {
-            const drawCarpet = (cx,cy,size,depth) => {
-              if(depth===0) return;
-              const cell=size/3;
-              ctx.strokeStyle=`rgba(255,255,255,${depth === 1 ? .09 : .045})`;
-              ctx.strokeRect(cx-cell/2,cy-cell/2,cell,cell);
-              if(depth>1) for(let gx=-1;gx<=1;gx++) for(let gy=-1;gy<=1;gy++) if(gx||gy) drawCarpet(cx+gx*cell,cy+gy*cell,cell,depth-1);
-            };
-            const s=Math.min(width,height)*.30;
-            [[s*.6,s*.6],[width-s*.6,s*.6],[s*.6,height-s*.6],[width-s*.6,height-s*.6]].forEach(([cx,cy])=>drawCarpet(cx,cy,s,3));
-          } else if(pattern===1) {
-            const tile=Math.min(width,height)*.115;
-            ctx.strokeStyle='rgba(255,255,255,.055)';
-            for(let row=-1;row<height/tile+1;row++) for(let col=-1;col<width/tile+1;col++) {
-              const cx=col*tile+(row%2)*tile/2, cy=row*tile;
-              ctx.beginPath();
-              for(let k=0;k<8;k++){const a=k*Math.PI/4-Math.PI/8;const px=cx+Math.cos(a)*tile*.34,py=cy+Math.sin(a)*tile*.34;k?ctx.lineTo(px,py):ctx.moveTo(px,py);}
-              ctx.closePath();ctx.stroke();
-            }
-          } else {
-            ctx.strokeStyle='rgba(255,255,255,.045)';
-            const gap=Math.min(width,height)*.09;
-            for(let row=-1;row<height/gap+1;row++) for(let col=-1;col<width/gap+1;col++) {
-              const cx=col*gap+(row%2)*gap/2,cy=row*gap;
-              ctx.beginPath();ctx.arc(cx,cy,gap*.5,0,Math.PI*2);ctx.stroke();
-              for(let k=0;k<6;k++){const a=k*Math.PI/3;ctx.beginPath();ctx.arc(cx+Math.cos(a)*gap*.5,cy+Math.sin(a)*gap*.5,gap*.5,0,Math.PI*2);ctx.stroke();}
-            }
-          }
-          const selected=Math.min(solids.length-1,Math.floor(pointerX*solids.length));
-          solids.forEach((solid,index)=>{
-            const active=index===selected;
-            const angle=performance.now()*.00018+(pointerX-.5)*.8;
-            const scale=minSide*(active ? .062 : .034);
-            const px=width*(.12+(index%3)*.38), py=height*(index<3?.17:.82);
-            const projected=solid.points.map(([a,b,c])=>{
-              const ry=b*Math.sin(angle)+c*Math.cos(angle), rz=b*Math.cos(angle)-c*Math.sin(angle);
-              const rx=a*Math.cos(angle*.7)+rz*Math.sin(angle*.7), z=rz*Math.cos(angle*.7)-a*Math.sin(angle*.7);
-              const perspective=3/(3+z*.35);
-              return [px+rx*scale*perspective,py+ry*scale*perspective];
-            });
-            ctx.strokeStyle=active?'rgba(255,255,255,.48)':'rgba(255,255,255,.16)';ctx.lineWidth=active?1.2:1;
-            solid.edges.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(...projected[a]);ctx.lineTo(...projected[b]);ctx.stroke();});
-            if(active){ctx.fillStyle='rgba(255,255,255,.55)';projected.forEach(([vx,vy])=>{ctx.beginPath();ctx.arc(vx,vy,1.6,0,Math.PI*2);ctx.fill();});}
-            ctx.fillStyle=active?'rgba(255,255,255,.68)':'rgba(255,255,255,.3)';
-            ctx.font=`${active?'600 ':'400 '}${Math.max(9,Math.min(12,minSide*.014))}px system-ui,sans-serif`;
-            ctx.textAlign='center';ctx.fillText(solid.name,px,py+scale*1.35);
-          });
+          drawLattice();drawDiagram();
         };
         const move = event => {
           pointerX = event.clientX / innerWidth; pointerY = event.clientY / innerHeight;
-          if (reduced) draw();
+          if (reduced) {followX=pointerX;followY=pointerY;draw();}
         };
-        if (!reduced) { const animate=now=>{if(now-lastFrame>34){draw();lastFrame=now;}frame=requestAnimationFrame(animate);}; frame=requestAnimationFrame(animate); }
+        if (!reduced) {
+          const animate=now=>{
+            if(now-lastFrame>32){
+              const delta=Math.min((now-lastFrame)/1000,.05);
+              lastFrame=now;time+=delta;
+              followX+=(pointerX-followX)*.085;followY+=(pointerY-followY)*.085;
+              draw();
+            }
+            frame=requestAnimationFrame(animate);
+          };
+          frame=requestAnimationFrame(animate);
+        }
         addEventListener('resize', resize);
         if (!reduced) addEventListener('pointermove', move, { passive: true });
         resize();
