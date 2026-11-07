@@ -20,6 +20,8 @@ const {
     <title>{title}</title>
   </head>
   <body>
+    <canvas class="geometry-backdrop" aria-hidden="true"></canvas>
+    <div class="geometry-glow" aria-hidden="true"></div>
     <canvas class="geometry-canvas" aria-hidden="true"></canvas>
     <a class="skip-link" href="#main-content">Skip to content</a>
     <slot />
@@ -27,11 +29,15 @@ const {
       (() => {
         const canvas = document.querySelector('.geometry-canvas');
         const ctx = canvas?.getContext('2d');
-        if (!ctx) return;
+        const backdrop = document.querySelector('.geometry-backdrop');
+        const backCtx = backdrop?.getContext('2d');
+        const glow = document.querySelector('.geometry-glow');
+        if (!ctx || !backCtx || !glow) return;
         const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
         let width = 0, height = 0, dpr = 1, pointerX = .5, pointerY = .5;
-        let followX = .5, followY = .5, frame, lastFrame = 0, time = 0;
+        let followX = .5, followY = .5, frame = 0, lastFrame = 0, time = 0, shapeSize = 0, glowSize = 0;
         const phi = (1 + Math.sqrt(5)) / 2;
+        const palette = [[65,155,255],[151,93,255],[239,104,196],[255,157,72],[93,213,150]];
         const distance = (a, b) => Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]);
         const connectNearest = points => {
           const lengths = points.flatMap((a,i) => points.slice(i+1).map(b => distance(a,b)));
@@ -78,7 +84,9 @@ const {
               segments.push([a.map((v,k)=>v+(b[k]-v)*start),a.map((v,k)=>v+(b[k]-v)*end)]);
             }
           });
-          return segments;
+          const flat=new Float32Array(count*6);
+          segments.forEach((segment,i)=>segment.forEach((point,end)=>point.forEach((value,axis)=>{flat[i*6+end*3+axis]=value;})));
+          return flat;
         };
         const mainCount=84,constructionCount=84;
         const shapes=definitions.map(shape=>{
@@ -87,134 +95,129 @@ const {
             const other=i+j+1;
             if(!shape.edges.some(([a,b])=>(a===i&&b===other)||(a===other&&b===i))) missing.push([i,other]);
           }));
-          const aux=missing.length?resampleEdges(shape.points,missing,constructionCount):Array.from({length:constructionCount},()=>[[0,0,0],[0,0,0]]);
+          const aux=missing.length?resampleEdges(shape.points,missing,constructionCount):new Float32Array(constructionCount*6);
           return {...shape,main:resampleEdges(shape.points,shape.edges,mainCount),aux};
         });
-        const lerp=(a,b,t)=>a+(b-a)*t;
-        const lerpSegment=(a,b,t)=>[a.map((v,i)=>lerp(v,b[0][i],t)),a[1].map((v,i)=>lerp(v,b[1][i],t))];
-        const resize = () => {
-          dpr = Math.min(devicePixelRatio || 1, 2);
-          width = innerWidth; height = innerHeight;
-          canvas.width = width * dpr; canvas.height = height * dpr;
-          canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          draw();
-        };
-        const drawLattice = () => {
-          const step=Math.max(42,Math.min(76,Math.min(width,height)*.105));
-          const rows=Math.ceil(height/(step*.82))+3,cols=Math.ceil(width/step)+3;
-          const points=new Map();
-          const key=(q,r)=>`${q},${r}`;
-          const node=(q,r)=>{
-            const id=key(q,r);
-            if(points.has(id)) return points.get(id);
-            const x=(q+r*.5)*step-step, y=r*step*.82-step;
-            const wiggle=step*.035;
-            const p=[x+Math.sin(q*.73+r*.39+time*.24)*wiggle,y+Math.cos(q*.31-r*.81+time*.19)*wiggle];
-            points.set(id,p);return p;
-          };
-          ctx.lineWidth=.85;ctx.strokeStyle='rgba(255,255,255,.075)';
-          for(let r=-1;r<rows;r++) for(let q=-2;q<cols;q++) {
-            const a=node(q,r);
-            for(const [dq,dr,direction] of [[1,0,0],[0,1,1],[1,-1,2]]) {
-              const b=node(q+dq,r+dr),dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy)||1;
-              const amount=step*(.055+Math.sin(time*.31+q*.48+r*.67+direction)*.025);
-              const sign=Math.sin(q*.37-r*.53+direction*1.7)>0?1:-1;
-              const cx=(a[0]+b[0])*.5-dy/length*amount*sign;
-              const cy=(a[1]+b[1])*.5+dx/length*amount*sign;
-              ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.quadraticCurveTo(cx,cy,b[0],b[1]);ctx.stroke();
-            }
-            if((q-r)%4===0) {
-              const phase=time*.22+q*.51+r*.33;
-              const arm=step*.24;
-              ctx.strokeStyle='rgba(255,255,255,.045)';
-              for(const side of [-1,1]) {
-                const angle=phase+side*.82;
-                ctx.beginPath();ctx.moveTo(a[0],a[1]);
-                ctx.quadraticCurveTo(a[0]+Math.cos(angle)*arm*.55,a[1]+Math.sin(angle)*arm*.55,a[0]+Math.cos(angle)*arm,a[1]+Math.sin(angle)*arm);
-                ctx.stroke();
-              }
-              ctx.strokeStyle='rgba(255,255,255,.075)';
-            }
-            if((q+r)%3===0) {
-              ctx.strokeStyle='rgba(255,255,255,.032)';
-              ctx.beginPath();
-              ctx.ellipse(a[0],a[1],step*.48,step*.34,Math.sin(time*.17+q*.2+r*.27)*.07,0,Math.PI*2);
-              ctx.stroke();
-              ctx.strokeStyle='rgba(255,255,255,.075)';
+        const drawBackdrop = () => {
+          backCtx.clearRect(0,0,width,height);
+          const step=Math.max(66,Math.min(96,Math.min(width,height)*.105)), rowGap=step*.48;
+          const rows=Math.ceil(height/rowGap)+5,cols=Math.ceil(width/step)+5;
+          backCtx.lineWidth=.9;backCtx.strokeStyle='rgba(255,255,255,.105)';backCtx.beginPath();
+          for(let row=-3;row<rows;row++) {
+            const y=row*rowGap-step,stagger=(Math.abs(row)%2)*step*.5;
+            for(let col=-3;col<cols;col++) {
+              const x=col*step+stagger-step;
+              const asym=Math.sin(col*1.71+row*.93)*step*.055;
+              const depth=step*(.48+Math.sin(col*.83-row*.57)*.035);
+              backCtx.moveTo(x,y);
+              backCtx.bezierCurveTo(x+step*.19+asym,y+depth*.72,x+step*.79+asym,y+depth*1.08,x+step,y);
             }
           }
+          backCtx.stroke();
+          backCtx.lineWidth=.65;backCtx.strokeStyle='rgba(255,255,255,.065)';backCtx.beginPath();
+          for(let row=-3;row<rows;row++) for(let col=-3;col<cols;col++) {
+            if((row*7+col)%6!==0) continue;
+            const x=col*step+(Math.abs(row)%2)*step*.5-step,y=row*rowGap-step;
+            const asym=Math.sin(col*1.71+row*.93)*step*.055,depth=step*.48;
+            backCtx.moveTo(x+step*.31,y+depth*.57);
+            backCtx.quadraticCurveTo(x+step*.48+asym,y+depth*.79,x+step*.69,y+depth*.54);
+          }
+          backCtx.stroke();
         };
-        const project = (point,cx,cy,radius,angleY,angleX) => {
-          let [x,y,z]=point;
-          const x1=x*Math.cos(angleY)+z*Math.sin(angleY),z1=-x*Math.sin(angleY)+z*Math.cos(angleY);
-          const y1=y*Math.cos(angleX)-z1*Math.sin(angleX),z2=y*Math.sin(angleX)+z1*Math.cos(angleX);
-          const perspective=3.6/(3.6+z2*.33);
+        const updateColor = () => {
+          const position=Math.max(0,Math.min(1,pointerX))*(palette.length-1),index=Math.floor(position),mix=position-index;
+          const first=palette[index],second=palette[Math.min(palette.length-1,index+1)];
+          const rgb=first.map((channel,i)=>Math.round(channel+(second[i]-channel)*mix)).join(' ');
+          glow.style.setProperty('--glow-rgb',rgb);
+          glow.style.setProperty('--cursor-x',`${pointerX*100}%`);
+          glow.style.setProperty('--cursor-y',`${pointerY*100}%`);
+        };
+        const resize = () => {
+          dpr = Math.min(devicePixelRatio || 1, 1);
+          width = innerWidth; height = innerHeight;
+          const minSide=Math.min(width,height);
+          shapeSize=minSide*.72;glowSize=minSide*.9;
+          canvas.width=shapeSize*dpr;canvas.height=shapeSize*dpr;
+          canvas.style.width=`${shapeSize}px`;canvas.style.height=`${shapeSize}px`;
+          ctx.setTransform(dpr,0,0,dpr,0,0);
+          backdrop.width=width*dpr;backdrop.height=height*dpr;
+          backCtx.setTransform(dpr,0,0,dpr,0,0);
+          glow.style.width=`${glowSize}px`;glow.style.height=`${glowSize}px`;
+          drawBackdrop();draw();
+        };
+        const project = (x,y,z,cx,cy,radius,cosY,sinY,cosX,sinX) => {
+          const x1=x*cosY+z*sinY,z1=-x*sinY+z*cosY;
+          const y1=y*cosX-z1*sinX,z2=y*sinX+z1*cosX;
+          const perspective=4.8/(4.8+z2*.16);
           return [cx+x1*radius*perspective,cy+y1*radius*perspective];
         };
-        const strokeSegments=(segments,cx,cy,radius,angleY,angleX,alpha,widthPx) => {
+        const strokeMorph = (first,second,mix,cx,cy,radius,cosY,sinY,cosX,sinX,alpha,widthPx) => {
           ctx.strokeStyle=`rgba(255,255,255,${alpha})`;ctx.lineWidth=widthPx;ctx.beginPath();
-          for(const [a,b] of segments) {
-            const start=project(a,cx,cy,radius,angleY,angleX),end=project(b,cx,cy,radius,angleY,angleX);
-            ctx.moveTo(start[0],start[1]);ctx.lineTo(end[0],end[1]);
+          for(let i=0;i<first.length;i+=6) {
+            const ax=first[i]+(second[i]-first[i])*mix,ay=first[i+1]+(second[i+1]-first[i+1])*mix,az=first[i+2]+(second[i+2]-first[i+2])*mix;
+            const bx=first[i+3]+(second[i+3]-first[i+3])*mix,by=first[i+4]+(second[i+4]-first[i+4])*mix,bz=first[i+5]+(second[i+5]-first[i+5])*mix;
+            const a=project(ax,ay,az,cx,cy,radius,cosY,sinY,cosX,sinX),b=project(bx,by,bz,cx,cy,radius,cosY,sinY,cosX,sinX);
+            ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);
           }
           ctx.stroke();
         };
         const drawDiagram = () => {
-          const minSide=Math.min(width,height),radius=minSide*.205;
-          const cx=Math.max(radius*1.3,Math.min(width-radius*1.3,followX*width));
-          const cy=Math.max(radius*1.5,Math.min(height-radius*1.5,followY*height));
-          const angleY=time*.22+(pointerX-.5)*.9,angleX=Math.sin(time*.14)*.12+(pointerY-.5)*.55;
+          const minSide=Math.min(width,height),radius=minSide*.205,cx=shapeSize*.5,cy=shapeSize*.5;
+          const followPixelX=Math.max(radius*1.3,Math.min(width-radius*1.3,followX*width));
+          const followPixelY=Math.max(radius*1.5,Math.min(height-radius*1.5,followY*height));
+          const shapeTransform=`translate3d(${followPixelX-cx}px,${followPixelY-cy}px,0)`;
+          canvas.style.transform=shapeTransform;
+          glow.style.transform=`translate3d(${followPixelX-glowSize*.5}px,${followPixelY-glowSize*.5}px,0)`;
+          const angleY=time*.12+(pointerX-.5)*.38,angleX=Math.sin(time*.08)*.055+(pointerY-.5)*.18;
+          const cosY=Math.cos(angleY),sinY=Math.sin(angleY),cosX=Math.cos(angleX),sinX=Math.sin(angleX);
           const shapePosition=pointerX*(shapes.length-1),from=Math.min(shapes.length-1,Math.floor(shapePosition));
           const to=Math.min(shapes.length-1,from+1),mix=shapePosition-from;
           const eased=mix*mix*(3-2*mix),first=shapes[from],second=shapes[to];
-          const basePoints=metatronPoints.map(point=>project(point,cx,cy,radius,angleY,angleX));
-          ctx.lineWidth=.9;ctx.strokeStyle='rgba(255,255,255,.065)';ctx.beginPath();
-          for(let i=0;i<basePoints.length;i++)for(let j=i+1;j<basePoints.length;j++){
-            ctx.moveTo(...basePoints[i]);ctx.lineTo(...basePoints[j]);
+          ctx.clearRect(0,0,shapeSize,shapeSize);
+          ctx.lineWidth=.9;ctx.strokeStyle='rgba(255,255,255,.12)';ctx.beginPath();
+          const basePoints=metatronPoints.map(point=>project(point[0],point[1],point[2],cx,cy,radius,cosY,sinY,cosX,sinX));
+          for(let i=0;i<basePoints.length;i++)for(let j=i+1;j<basePoints.length;j++) {
+            ctx.moveTo(basePoints[i][0],basePoints[i][1]);ctx.lineTo(basePoints[j][0],basePoints[j][1]);
           }
           ctx.stroke();
-          ctx.strokeStyle='rgba(255,255,255,.11)';ctx.lineWidth=.85;
+          ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=.9;
           for(const center of metatronPoints) {
             ctx.beginPath();
             for(let i=0;i<=32;i++) {
-              const a=i*Math.PI*2/32,point=[center[0]+Math.cos(a)*.25,center[1]+Math.sin(a)*.25,center[2]];
-              const projected=project(point,cx,cy,radius,angleY,angleX);
-              i?ctx.lineTo(...projected):ctx.moveTo(...projected);
+              const a=i*Math.PI*2/32,projected=project(center[0]+Math.cos(a)*.25,center[1]+Math.sin(a)*.25,center[2],cx,cy,radius,cosY,sinY,cosX,sinX);
+              i?ctx.lineTo(projected[0],projected[1]):ctx.moveTo(projected[0],projected[1]);
             }
             ctx.closePath();ctx.stroke();
           }
-          const main=first.main.map((segment,i)=>lerpSegment(segment,second.main[i],eased));
-          const aux=first.aux.map((segment,i)=>lerpSegment(segment,second.aux[i],eased));
-          strokeSegments(aux,cx,cy,radius,angleY,angleX,.14,.8);
-          strokeSegments(main,cx,cy,radius,angleY,angleX,.57,1.25);
+          strokeMorph(first.aux,second.aux,eased,cx,cy,radius,cosY,sinY,cosX,sinX,.22,.9);
+          strokeMorph(first.main,second.main,eased,cx,cy,radius,cosY,sinY,cosX,sinX,.76,1.3);
           const label=eased<.5?first.name:second.name;
           ctx.fillStyle='rgba(255,255,255,.63)';ctx.font=`500 ${Math.max(10,Math.min(13,minSide*.016))}px system-ui,sans-serif`;
           ctx.textAlign='center';ctx.fillText(label.toUpperCase(),cx,cy+radius*1.34);
         };
-        const draw = () => {
-          ctx.clearRect(0, 0, width, height);
-          drawLattice();drawDiagram();
-        };
+        const draw=()=>drawDiagram();
         const move = event => {
           pointerX = event.clientX / innerWidth; pointerY = event.clientY / innerHeight;
+          updateColor();
           if (reduced) {followX=pointerX;followY=pointerY;draw();}
         };
-        if (!reduced) {
-          const animate=now=>{
-            if(now-lastFrame>32){
-              const delta=Math.min((now-lastFrame)/1000,.05);
-              lastFrame=now;time+=delta;
-              followX+=(pointerX-followX)*.085;followY+=(pointerY-followY)*.085;
-              draw();
-            }
-            frame=requestAnimationFrame(animate);
-          };
+        const animate=now=>{
+          if(document.hidden){frame=0;return;}
+          if(now-lastFrame>41){
+            const delta=Math.min((now-lastFrame)/1000,.06);lastFrame=now;time+=delta;
+            followX+=(pointerX-followX)*.11;followY+=(pointerY-followY)*.11;
+            updateColor();draw();
+          }
           frame=requestAnimationFrame(animate);
-        }
+        };
+        const start=()=>{if(!reduced&&!frame&&!document.hidden)frame=requestAnimationFrame(animate);};
+        const stop=()=>{if(frame)cancelAnimationFrame(frame);frame=0;};
         addEventListener('resize', resize);
-        if (!reduced) addEventListener('pointermove', move, { passive: true });
+        addEventListener('pointermove', move, { passive: true });
+        document.addEventListener('visibilitychange',()=>document.hidden?stop():start());
+        updateColor();
         resize();
+        start();
       })();
     </script>
   </body>

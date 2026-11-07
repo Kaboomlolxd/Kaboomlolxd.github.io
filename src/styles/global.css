@@ -28,9 +28,36 @@ body {
   color: var(--ink);
 }
 
-.geometry-canvas { position: fixed; z-index: 0; inset: 0; pointer-events: none; opacity: .9; }
-body > :not(.geometry-canvas) { position: relative; z-index: 1; }
+.geometry-backdrop {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  opacity: .96;
+  pointer-events: none;
+  transform-origin: center;
+  animation: lattice-depth 42s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.geometry-glow {
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgb(var(--glow-rgb, 151 93 255) / .13), rgb(var(--glow-rgb, 151 93 255) / .055) 42%, transparent 74%);
+  pointer-events: none;
+  will-change: transform;
+}
+.geometry-canvas { position: fixed; z-index: 2; top: 0; left: 0; pointer-events: none; opacity: 1; will-change: transform; }
+body > :not(.geometry-canvas):not(.geometry-backdrop):not(.geometry-glow) { position: relative; z-index: 3; }
 body { isolation: isolate; }
+
+@keyframes lattice-depth {
+  from { transform: perspective(1000px) rotateX(.8deg) rotateY(-.25deg) scale(1.025); }
+  to { transform: perspective(1000px) rotateX(1.25deg) rotateY(.25deg) scale(1.035); }
+}
 
 a {
   color: inherit;
@@ -932,5 +959,6 @@ body, :root[data-theme='dark'] body { background: #000; color: #fff; }
 .project-detail + .project-detail { box-shadow: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .geometry-canvas { opacity: .48; }
+  .geometry-backdrop { animation: none; }
+  .geometry-canvas { opacity: 1; }
 }
