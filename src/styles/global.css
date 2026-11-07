@@ -51,17 +51,18 @@ body {
   object-fit: cover;
   opacity: 0;
   scale: 1.025;
-  filter: saturate(.82);
   transition: opacity 1.8s ease;
 }
 .background-image.is-active {
   opacity: .45;
   scale: 1.025;
   animation: background-zoom 38s ease-in-out infinite alternate;
-  will-change: opacity, scale, translate;
+  will-change: opacity, scale;
 }
-.geometry-canvas { position: fixed; z-index: 2; top: 0; left: 0; pointer-events: none; opacity: 1; will-change: transform; }
-body > :not(.geometry-canvas):not(.background-image-field) { position: relative; z-index: 3; }
+.geometry-layer { position: fixed; z-index: 2; top: 0; left: 0; pointer-events: none; will-change: transform; }
+.geometry-canvas { display: block; width: 100%; height: 100%; pointer-events: none; }
+.geometry-label { position: absolute; right: 0; bottom: 7.5%; left: 0; color: rgba(255,255,255,.68); font-size: clamp(.62rem,1.2vw,.82rem); font-weight: 500; letter-spacing: .1em; text-align: center; text-transform: uppercase; }
+body > :not(.geometry-layer):not(.background-image-field) { position: relative; z-index: 3; }
 body { isolation: isolate; }
 
 @keyframes background-zoom {
@@ -970,5 +971,5 @@ body, :root[data-theme='dark'] body { background: #000; color: #fff; }
 
 @media (prefers-reduced-motion: reduce) {
   .background-image.is-active { animation: none; }
-  .geometry-canvas { opacity: 1; }
+  .geometry-layer { opacity: 1; }
 }

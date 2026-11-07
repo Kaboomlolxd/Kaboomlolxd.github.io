@@ -30,12 +30,14 @@ const backgroundImages = [
     <title>{title}</title>
   </head>
   <body>
-    <div class="background-image-field" aria-hidden="true">
-      {backgroundImages.map((image, index) => (
-        <img class:list={['background-image', index === 0 && 'is-active']} src={`/backgrounds/${image}`} alt="" loading="eager" />
-      ))}
+    <div class="background-image-field" data-backgrounds={backgroundImages.map((image) => `/backgrounds/${image}`).join('|')} aria-hidden="true">
+      <img class="background-image is-active" src={`/backgrounds/${backgroundImages[0]}`} alt="" decoding="async" />
+      <img class="background-image" src={`/backgrounds/${backgroundImages[1]}`} alt="" decoding="async" />
     </div>
-    <canvas class="geometry-canvas" aria-hidden="true"></canvas>
+    <div class="geometry-layer" aria-hidden="true">
+      <canvas class="geometry-canvas"></canvas>
+      <span class="geometry-label"></span>
+    </div>
     <a class="skip-link" href="#main-content">Skip to content</a>
     <slot />
     <script>
