@@ -35,7 +35,7 @@ const {
         if (!ctx || !backCtx || !glow) return;
         const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
         let width = 0, height = 0, dpr = 1, pointerX = .5, pointerY = .5;
-        let followX = .5, followY = .5, frame = 0, lastFrame = 0, time = 0, shapeSize = 0, glowSize = 0;
+        let followX = .5, followY = .5, frame = 0, lastFrame = 0, lastBackdrop = 0, time = 0, shapeSize = 0, glowSize = 0;
         const phi = (1 + Math.sqrt(5)) / 2;
         const palette = [[65,155,255],[151,93,255],[239,104,196],[255,157,72],[93,213,150]];
         const distance = (a, b) => Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]);
@@ -107,8 +107,8 @@ const {
             const y=row*rowGap-step,stagger=(Math.abs(row)%2)*step*.5;
             for(let col=-3;col<cols;col++) {
               const x=col*step+stagger-step;
-              const asym=Math.sin(col*1.71+row*.93)*step*.055;
-              const depth=step*(.48+Math.sin(col*.83-row*.57)*.035);
+              const asym=(Math.sin(col*1.71+row*.93+time*.18)+Math.sin(col*.43-row*.76-time*.12)*.35)*step*.045;
+              const depth=step*(.48+Math.sin(col*.83-row*.57+time*.15)*.035);
               backCtx.moveTo(x,y);
               backCtx.bezierCurveTo(x+step*.19+asym,y+depth*.72,x+step*.79+asym,y+depth*1.08,x+step,y);
             }
@@ -118,9 +118,9 @@ const {
           for(let row=-3;row<rows;row++) for(let col=-3;col<cols;col++) {
             if((row*7+col)%6!==0) continue;
             const x=col*step+(Math.abs(row)%2)*step*.5-step,y=row*rowGap-step;
-            const asym=Math.sin(col*1.71+row*.93)*step*.055,depth=step*.48;
+            const asym=(Math.sin(col*1.71+row*.93+time*.18)+Math.sin(col*.43-row*.76-time*.12)*.35)*step*.045,depth=step*.48;
             backCtx.moveTo(x+step*.31,y+depth*.57);
-            backCtx.quadraticCurveTo(x+step*.48+asym,y+depth*.79,x+step*.69,y+depth*.54);
+            backCtx.quadraticCurveTo(x+step*.48+asym,y+depth*(.79+Math.sin(time*.18+col*.6+row*.4)*.025),x+step*.69,y+depth*.54);
           }
           backCtx.stroke();
         };
@@ -140,8 +140,9 @@ const {
           canvas.width=shapeSize*dpr;canvas.height=shapeSize*dpr;
           canvas.style.width=`${shapeSize}px`;canvas.style.height=`${shapeSize}px`;
           ctx.setTransform(dpr,0,0,dpr,0,0);
-          backdrop.width=width*dpr;backdrop.height=height*dpr;
-          backCtx.setTransform(dpr,0,0,dpr,0,0);
+          const backDpr=Math.min(devicePixelRatio||1,.7);
+          backdrop.width=width*backDpr;backdrop.height=height*backDpr;
+          backCtx.setTransform(backDpr,0,0,backDpr,0,0);
           glow.style.width=`${glowSize}px`;glow.style.height=`${glowSize}px`;
           drawBackdrop();draw();
         };
@@ -206,6 +207,7 @@ const {
           if(now-lastFrame>41){
             const delta=Math.min((now-lastFrame)/1000,.06);lastFrame=now;time+=delta;
             followX+=(pointerX-followX)*.11;followY+=(pointerY-followY)*.11;
+            if(now-lastBackdrop>95){drawBackdrop();lastBackdrop=now;}
             updateColor();draw();
           }
           frame=requestAnimationFrame(animate);
