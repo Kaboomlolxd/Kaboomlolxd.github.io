@@ -28,29 +28,46 @@ body {
   color: var(--ink);
 }
 
-.geometry-backdrop {
+.background-image-field {
   position: fixed;
   z-index: 0;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  opacity: .8;
+  inset: -6%;
   pointer-events: none;
-  transform-origin: center;
-}
-.geometry-glow {
-  position: fixed;
-  z-index: 1;
-  top: 0;
-  left: 0;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgb(var(--glow-rgb, 151 93 255) / .13), rgb(var(--glow-rgb, 151 93 255) / .055) 42%, transparent 74%);
-  pointer-events: none;
+  overflow: hidden;
   will-change: transform;
 }
+.background-image-field::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, .54), rgba(0, 0, 0, .68));
+  content: '';
+}
+.background-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  scale: 1.025;
+  filter: saturate(.82);
+  transition: opacity 1.8s ease;
+}
+.background-image.is-active {
+  opacity: .45;
+  scale: 1.025;
+  animation: background-zoom 38s ease-in-out infinite alternate;
+  will-change: opacity, scale, translate;
+}
 .geometry-canvas { position: fixed; z-index: 2; top: 0; left: 0; pointer-events: none; opacity: 1; will-change: transform; }
-body > :not(.geometry-canvas):not(.geometry-backdrop):not(.geometry-glow) { position: relative; z-index: 3; }
+body > :not(.geometry-canvas):not(.background-image-field) { position: relative; z-index: 3; }
 body { isolation: isolate; }
+
+@keyframes background-zoom {
+  from { scale: 1.025; }
+  to { scale: 1.09; }
+}
 
 a {
   color: inherit;
@@ -952,5 +969,6 @@ body, :root[data-theme='dark'] body { background: #000; color: #fff; }
 .project-detail + .project-detail { box-shadow: none; }
 
 @media (prefers-reduced-motion: reduce) {
+  .background-image.is-active { animation: none; }
   .geometry-canvas { opacity: 1; }
 }
