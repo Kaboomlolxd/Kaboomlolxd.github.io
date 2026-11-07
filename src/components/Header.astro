@@ -4,37 +4,6 @@
     <ul class="site-nav__links">
       <li><a href="/about/">About</a></li>
       <li><a href="/#projects">Projects</a></li>
-      <li>
-        <button class="theme-toggle" type="button" aria-label="Use dark mode" aria-pressed="false">
-          <span class="theme-toggle__icon" aria-hidden="true">☾</span>
-          <span class="theme-toggle__label">Dark mode</span>
-        </button>
-      </li>
     </ul>
   </nav>
 </header>
-
-<script>
-  const themeToggle = document.querySelector<HTMLButtonElement>('.theme-toggle');
-  const storedTheme = localStorage.getItem('portfolio-theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const setTheme = (theme: 'light' | 'dark') => {
-    document.documentElement.dataset.theme = theme;
-    if (themeToggle) {
-      const isDark = theme === 'dark';
-      themeToggle.setAttribute('aria-pressed', String(isDark));
-      themeToggle.setAttribute('aria-label', isDark ? 'Use light mode' : 'Use dark mode');
-      const label = themeToggle.querySelector('.theme-toggle__label');
-      const icon = themeToggle.querySelector('.theme-toggle__icon');
-      if (label) label.textContent = isDark ? 'Light mode' : 'Dark mode';
-      if (icon) icon.textContent = isDark ? '☀' : '☾';
-    }
-  };
-
-  setTheme(storedTheme === 'dark' || (!storedTheme && prefersDark) ? 'dark' : 'light');
-  themeToggle?.addEventListener('click', () => {
-    const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('portfolio-theme', nextTheme);
-    setTheme(nextTheme);
-  });
-</script>

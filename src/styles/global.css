@@ -1,30 +1,17 @@
 :root {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.5;
-  color: #192033;
-  background: #f7f8fc;
-  --ink: #192033;
-  --muted: #697086;
-  --line: #dfe3ed;
-  --surface: #fff;
-  --purple: #7655f5;
-  --blue: #3f82e8;
-  --green: #18aa97;
-  --page: #f7f8fc;
-  color-scheme: light;
-}
-
-:root[data-theme='dark'] {
+  color: #fff;
+  background: #000;
+  --ink: #fff;
+  --muted: #b8b8b8;
+  --line: #444;
+  --surface: #080808;
+  --purple: #fff;
+  --blue: #fff;
+  --green: #fff;
+  --page: #000;
   color-scheme: dark;
-  --ink: #edf1ff;
-  --muted: #aab4cb;
-  --line: #303a52;
-  --surface: #151c2d;
-  --purple: #a896ff;
-  --blue: #79abff;
-  --green: #5dd7c0;
-  --page: #0e1422;
-  background: #0e1422;
 }
 
 * {
@@ -37,14 +24,13 @@ html {
 
 body {
   margin: 0;
-  background: radial-gradient(circle at 85% -10%, #ebe6ff 0, transparent 30rem), var(--background, #f7f8fc);
+  background: #000;
   color: var(--ink);
-  transition: background-color 180ms ease, color 180ms ease;
 }
 
-:root[data-theme='dark'] body {
-  background: radial-gradient(circle at 85% -10%, #20204a 0, transparent 32rem), #0e1422;
-}
+.geometry-canvas { position: fixed; z-index: 0; inset: 0; pointer-events: none; opacity: .72; }
+body > :not(.geometry-canvas) { position: relative; z-index: 1; }
+body { isolation: isolate; }
 
 a {
   color: inherit;
@@ -52,7 +38,7 @@ a {
 
 a:focus-visible,
 button:focus-visible {
-  outline: 3px solid #f1a73a;
+  outline: 3px solid #fff;
   outline-offset: 4px;
 }
 
@@ -87,22 +73,6 @@ main,
   align-items: center;
 }
 
-.theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.65rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  font-size: 0.82rem;
-  cursor: pointer;
-}
-
-.theme-toggle:hover { border-color: var(--purple); }
-.theme-toggle__icon { font-size: 1rem; line-height: 1; }
 
 .site-nav {
   justify-content: space-between;
@@ -932,4 +902,33 @@ main,
   .engine-demo[data-running="true"] .state-visual span.is-current { animation: none; }
   .ssd-pack__layers span.is-reading i { animation: none; }
   .pipeline-connector span.is-moving { left: 50%; animation: none; opacity: 1; }
+}
+
+/* Unified monochrome treatment for legacy component styles. */
+:root, :root[data-theme='dark'] { color-scheme: dark; --ink: #fff; --muted: #b8b8b8; --line: #444; --surface: #080808; --page: #000; --purple: #fff; --blue: #fff; --green: #fff; background: #000; }
+body, :root[data-theme='dark'] body { background: #000; color: #fff; }
+.project-detail, .project-card, .external-project-panel, .engine-techniques article,
+.architecture-mobile div, .project-gallery__placeholder, .project-media-slot__frame { background: #000; color: #fff; }
+.project-card, .external-project-panel, .engine-demo, .demo-shell { box-shadow: none; }
+.project-card:hover, .project-index a:hover, .project-index a.is-active, .demo-mode:hover, .demo-mode.is-selected { border-color: #fff; }
+.button, .theme-toggle { border-color: #fff; background: #000; color: #fff; }
+.button--primary, .engine-demo .button--primary, .demo-shell .button--primary { border-color: #fff; background: #fff; color: #000; }
+.engine-demo, .demo-shell { border-color: #fff; background: #000; color: #fff; }
+.engine-demo::before { display: none; }
+.demo-node, .demo-node--disk, .demo-node--ram, .demo-node--state, .demo-node--output,
+.engine-demo__configuration, .engine-demo__playback, .pipeline-lane, .ssd-pack, .layer-record,
+.cache-slot, .compute-stage, .state-panel, .engine-demo__inspector, .engine-memory > div,
+.overlap-timeline, .engine-demo__workspace, .engine-demo__pipeline { background: #000; }
+.layer-bar.is-active, .demo-status i, .memory-slots i.is-filled, .cache-slot.is-active,
+.compute-stage.is-active, .state-visual span.is-current, .timeline-cell.is-current,
+.demo-shell .button--primary { background: #fff; color: #000; box-shadow: none; }
+.ssd-pack__layers i, .ssd-pack__layers span.is-current i, .ssd-pack__layers span.is-prefetched i,
+.chart-bar, .chart-bar--teal, .chart-track--reference .chart-bar { background: #fff; }
+.chart-track, .chart-track--reference, .timeline-cell, .layer-bar, .memory-slots i { background: #222; }
+.architecture-box--purple rect, .architecture-box--blue rect, .architecture-box--green rect { fill: #000; stroke: #fff; }
+.project-gallery img, .project-media-slot__image, .project-media-slot__video, .engine-demo-video { background: #000; }
+.project-detail + .project-detail { box-shadow: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .geometry-canvas { opacity: .48; }
 }

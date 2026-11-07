@@ -18,16 +18,58 @@ const {
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
-    <script is:inline>
-      (() => {
-        const saved = localStorage.getItem('portfolio-theme');
-        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.documentElement.dataset.theme = saved === 'dark' || (!saved && systemDark) ? 'dark' : 'light';
-      })();
-    </script>
   </head>
   <body>
+    <canvas class="geometry-canvas" aria-hidden="true"></canvas>
     <a class="skip-link" href="#main-content">Skip to content</a>
     <slot />
+    <script is:inline>
+      (() => {
+        const canvas = document.querySelector('.geometry-canvas');
+        const ctx = canvas?.getContext('2d');
+        if (!ctx) return;
+        const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let width = 0, height = 0, dpr = 1, pointerX = .5, pointerY = .5, frame;
+        const resize = () => {
+          dpr = Math.min(devicePixelRatio || 1, 2);
+          width = innerWidth; height = innerHeight;
+          canvas.width = width * dpr; canvas.height = height * dpr;
+          canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          draw();
+        };
+        const draw = () => {
+          ctx.clearRect(0, 0, width, height);
+          const x = width * (.5 + (pointerX - .5) * .18);
+          const y = height * (.45 + (pointerY - .5) * .16);
+          const radius = Math.min(width, height) * .24;
+          const tilt = (pointerX - .5) * .42;
+          const points = [];
+          for (let i = 0; i < 6; i++) {
+            const a = Math.PI * i / 3 + tilt - Math.PI / 2;
+            points.push([x + Math.cos(a) * radius, y + Math.sin(a) * radius * .72]);
+          }
+          const dots = [[x,y], ...points];
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = 'rgba(255,255,255,.18)';
+          for (let i = 0; i < dots.length; i++) for (let j = i + 1; j < dots.length; j++) {
+            ctx.beginPath(); ctx.moveTo(...dots[i]); ctx.lineTo(...dots[j]); ctx.stroke();
+          }
+          ctx.strokeStyle = 'rgba(255,255,255,.08)';
+          for (let ring = 1; ring <= 3; ring++) {
+            ctx.beginPath(); ctx.ellipse(x, y, radius * ring / 3, radius * ring * .72 / 3, 0, 0, Math.PI * 2); ctx.stroke();
+          }
+          ctx.fillStyle = 'rgba(255,255,255,.7)';
+          dots.forEach(([px,py]) => { ctx.beginPath(); ctx.arc(px,py,2,0,Math.PI*2); ctx.fill(); });
+        };
+        const move = event => {
+          pointerX = event.clientX / innerWidth; pointerY = event.clientY / innerHeight;
+          if (!reduced) { cancelAnimationFrame(frame); frame = requestAnimationFrame(draw); }
+        };
+        addEventListener('resize', resize);
+        if (!reduced) addEventListener('pointermove', move, { passive: true });
+        resize();
+      })();
+    </script>
   </body>
 </html>
