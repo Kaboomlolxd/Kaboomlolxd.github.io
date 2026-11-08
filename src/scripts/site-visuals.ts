@@ -111,13 +111,13 @@ const THREE = await import('three');
 
   let renderer: THREE.WebGLRenderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'low-power' });
+  renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: 'low-power' });
   } catch {
     title.textContent = shapes[Math.floor(shapes.length / 2)].name;
     return;
   }
 
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 0.85));
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 0.8));
   renderer.setClearColor(0x000000, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -127,7 +127,7 @@ const THREE = await import('three');
   const group = new THREE.Group();
   scene.add(group);
 
-  const activeShape = Math.floor(shapes.length / 2);
+  let activeShape = Math.floor(shapes.length / 2);
   title.textContent = shapes[activeShape].name;
   let targetShape = activeShape;
   let morphStarted = 0;
@@ -179,13 +179,11 @@ const THREE = await import('three');
     const v = new THREE.Vector3().crossVectors(normal, u).normalize();
     const origin = new THREE.Vector3(...center);
     const points: THREE.Vector3[] = [];
-    for (let step = 0; step < 48; step++) {
-      const angle = (step / 48) * Math.PI * 2;
+    for (let step = 0; step < 24; step++) {
+      const angle = (step / 24) * Math.PI * 2;
       points.push(origin.clone().addScaledVector(u, Math.cos(angle) * 0.25).addScaledVector(v, Math.sin(angle) * 0.25));
     }
-    for (let i = 0; i < points.length; i++) {
-      circlePositions.push(...points[i].toArray(), ...points[(i + 1) % points.length].toArray());
-    }
+    for (let i = 0; i < points.length; i++) circlePositions.push(...points[i].toArray(), ...points[(i + 1) % points.length].toArray());
   }
   const circleGeometry = new THREE.BufferGeometry();
   circleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(circlePositions, 3));
@@ -214,22 +212,44 @@ const THREE = await import('three');
   });
   group.add(new THREE.LineSegments(circleGeometry, circleMaterial));
 
-  scene.add(new THREE.HemisphereLight(0xc8dcff, 0x101522, 1.6));
-  const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
-  keyLight.position.set(-2.5, 3.5, 5);
-  scene.add(keyLight);
-  const sphereGeometry = new THREE.SphereGeometry(0.024, 12, 8);
-  const sphereMaterial = new THREE.MeshPhongMaterial({ color: 0xe4efff, specular: 0xffffff, shininess: 80 });
-  const nodes = new THREE.InstancedMesh(sphereGeometry, sphereMaterial, metatronPoints.length);
-  const nodeTransform = new THREE.Object3D();
+  const nodePositions: number[] = [];
+  const nodeSizes: number[] = [];
   metatronPoints.forEach(([x, y, z], index) => {
-    nodeTransform.position.set(x, y, z);
-    nodeTransform.scale.setScalar(index === 0 ? 1.35 : 1);
-    nodeTransform.updateMatrix();
-    nodes.setMatrixAt(index, nodeTransform.matrix);
+    nodePositions.push(x, y, z);
+    nodeSizes.push(index === 0 ? 1.35 : 1);
   });
-  nodes.instanceMatrix.needsUpdate = true;
-  group.add(nodes);
+  const nodeGeometry = new THREE.BufferGeometry();
+  nodeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(nodePositions, 3));
+  nodeGeometry.setAttribute('nodeSize', new THREE.Float32BufferAttribute(nodeSizes, 1));
+  const nodeMaterial = new THREE.ShaderMaterial({
+    vertexShader: `
+      attribute float nodeSize;
+      varying float viewDepth;
+      void main() {
+        vec4 viewPoint = modelViewMatrix * vec4(position, 1.0);
+        viewDepth = viewPoint.z;
+        gl_Position = projectionMatrix * viewPoint;
+        gl_PointSize = nodeSize * 6.0;
+      }
+    `,
+    fragmentShader: `
+      varying float viewDepth;
+      void main() {
+        vec2 p = gl_PointCoord - 0.5;
+        float r = length(p);
+        if (r > 0.5) discard;
+        float light = max(0.0, 1.0 - length(p - vec2(-0.13, 0.16)) * 1.7);
+        float edge = smoothstep(0.5, 0.28, r);
+        float depth = 0.72 + clamp((-viewDepth - 4.0) * 0.035, -0.2, 0.2);
+        vec3 color = mix(vec3(0.18, 0.3, 0.52), vec3(0.94, 0.98, 1.0), light);
+        gl_FragColor = vec4(color * depth, edge * 0.94);
+      }
+    `,
+    transparent: true,
+    depthTest: true,
+    depthWrite: false,
+  });
+  group.add(new THREE.Points(nodeGeometry, nodeMaterial));
 
   let viewportWidth = innerWidth;
   let viewportHeight = innerHeight;
@@ -241,11 +261,11 @@ const THREE = await import('three');
   let lastFrame = 0;
   let imageIndex = 0;
   let activeLayer = 0;
-  let animationTimer = 0;
+  let animationFrame = 0;
   let slideTimer = 0;
   let preloadTimer = 0;
   let switchingImage = false;
-  const frameInterval = 1000 / 24;
+  const frameInterval = 1000 / 40;
 
   const resize = () => {
     viewportWidth = innerWidth;
@@ -253,6 +273,8 @@ const THREE = await import('three');
     stageSize = Math.min(viewportWidth, viewportHeight) * 0.52;
     stage.style.width = `${stageSize}px`;
     stage.style.height = `${stageSize}px`;
+    camera.aspect = 1;
+    camera.updateProjectionMatrix();
     renderer.setSize(stageSize, stageSize, false);
     draw();
   };
@@ -269,20 +291,29 @@ const THREE = await import('three');
     renderer.render(scene, camera);
   };
 
+  const updateCurrentMorph = (now: number) => {
+    if (morphProgress >= 1) return;
+    const progress = Math.min(1, (now - morphStarted) / 700);
+    const eased = progress * progress * (3 - 2 * progress);
+    for (let i = 0; i < currentLines.length; i++) currentLines[i] = morphFrom[i] + (morphTo[i] - morphFrom[i]) * eased;
+    morphProgress = progress;
+    if (morphProgress === 1) activeShape = targetShape;
+  };
+
   const updateMorph = (now: number) => {
     if (morphProgress >= 1) return;
-    morphProgress = Math.min(1, (now - morphStarted) / 500);
+    morphProgress = Math.min(1, (now - morphStarted) / 700);
     const eased = morphProgress * morphProgress * (3 - 2 * morphProgress);
     mainMaterial.uniforms.morphAmount.value = eased;
-    for (let i = 0; i < currentLines.length; i++) currentLines[i] = morphFrom[i] + (morphTo[i] - morphFrom[i]) * eased;
-    if (morphProgress === 1) title.textContent = shapes[targetShape].name;
+    if (morphProgress === 1) {
+      activeShape = targetShape;
+      title.textContent = shapes[activeShape].name;
+    }
   };
 
   const setTargetShape = (index: number) => {
     if (index === targetShape) return;
-    const mix = morphProgress >= 1 ? 1 : Math.max(0, Math.min(1, (performance.now() - morphStarted) / 500));
-    const eased = mix * mix * (3 - 2 * mix);
-    for (let i = 0; i < currentLines.length; i++) currentLines[i] = morphFrom[i] + (morphTo[i] - morphFrom[i]) * eased;
+    updateCurrentMorph(performance.now());
     morphFrom.set(currentLines);
     morphTo.set(shapes[index].lines);
     mainGeometry.attributes.morphStart.needsUpdate = true;
@@ -293,8 +324,12 @@ const THREE = await import('three');
     mainMaterial.uniforms.morphAmount.value = reducedMotion ? 1 : 0;
     if (reducedMotion) {
       currentLines.set(shapes[index].lines);
+      mainMaterial.uniforms.morphAmount.value = 1;
+      activeShape = index;
       title.textContent = shapes[index].name;
       draw();
+    } else {
+      requestRender();
     }
   };
 
@@ -307,20 +342,45 @@ const THREE = await import('three');
       followX = pointerX;
       followY = pointerY;
       draw();
+    } else {
+      requestRender();
     }
   };
 
   const animate = (now: number) => {
-    if (now - lastFrame < frameInterval) return;
-    const delta = Math.min((now - lastFrame) / 1000, 0.06);
+    if (document.hidden) {
+      animationFrame = 0;
+      return;
+    }
+    if (now - lastFrame < frameInterval) {
+      animationFrame = requestAnimationFrame(animate);
+      return;
+    }
+    const delta = Math.min((now - lastFrame) / 1000, 0.08);
     lastFrame = now;
-    group.rotation.y += delta * 0.18;
-    group.rotation.x = Math.sin(now * 0.00012) * 0.08 + (pointerY - 0.5) * 0.24;
-    followX += (pointerX - followX) * 0.11;
-    followY += (pointerY - followY) * 0.11;
+    const followEase = 1 - Math.exp(-delta * 18);
+    followX += (pointerX - followX) * followEase;
+    followY += (pointerY - followY) * followEase;
+    const targetRotationY = (pointerX - 0.5) * 0.55;
+    const targetRotationX = (pointerY - 0.5) * 0.28;
+    group.rotation.y += (targetRotationY - group.rotation.y) * followEase;
+    group.rotation.x += (targetRotationX - group.rotation.x) * followEase;
     updateMorph(now);
     draw();
+    const pointerSettled = Math.abs(followX - pointerX) + Math.abs(followY - pointerY) < 0.002;
+    const rotationSettled = Math.abs(group.rotation.y - targetRotationY) + Math.abs(group.rotation.x - targetRotationX) < 0.002;
+    if (morphProgress >= 1 && pointerSettled && rotationSettled) {
+      animationFrame = 0;
+      return;
+    }
+    animationFrame = requestAnimationFrame(animate);
   };
+
+  function requestRender() {
+    if (reducedMotion || document.hidden || animationFrame) return;
+    lastFrame = 0;
+    animationFrame = requestAnimationFrame(animate);
+  }
 
   const rotateImage = async () => {
     if (switchingImage) return;
@@ -355,16 +415,14 @@ const THREE = await import('three');
   };
 
   const start = () => {
-    if (reducedMotion || document.hidden || animationTimer) return;
-    lastFrame = performance.now();
-    renderer.setAnimationLoop(animate);
-    animationTimer = 1;
+    if (document.hidden) return;
+    if (!reducedMotion) requestRender();
     if (!slideTimer) slideTimer = window.setTimeout(rotateImage, 15000);
   };
 
   const stop = () => {
-    renderer.setAnimationLoop(null);
-    animationTimer = 0;
+    if (animationFrame) cancelAnimationFrame(animationFrame);
+    animationFrame = 0;
     window.clearTimeout(slideTimer);
     window.clearTimeout(preloadTimer);
     slideTimer = 0;
