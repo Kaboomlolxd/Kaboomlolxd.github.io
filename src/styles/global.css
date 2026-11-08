@@ -36,10 +36,6 @@ body {
   overflow: hidden;
   will-change: transform;
 }
-.firefox-rendering .background-image-field {
-  transform: translateZ(0);
-  will-change: transform, opacity;
-}
 .background-image-field::after {
   position: absolute;
   z-index: 1;
@@ -56,10 +52,6 @@ body {
   opacity: 0;
   scale: 1.025;
   transition: opacity 1.8s ease;
-}
-.firefox-rendering .background-image {
-  transform: translateZ(0);
-  will-change: opacity, transform;
 }
 .background-image.is-active {
   opacity: .45;

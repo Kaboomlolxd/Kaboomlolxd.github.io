@@ -2,12 +2,6 @@ const backgroundField = document.querySelector<HTMLElement>('.background-image-f
 const imageLayers = [...document.querySelectorAll<HTMLImageElement>('.background-image')];
 const backgroundUrls = backgroundField?.dataset.backgrounds?.split('|') ?? [];
 
-// Firefox can choose a software paint path for the transformed background.
-// Scope the compositor hint to that browser so other engines keep their
-// existing rendering behavior.
-const isFirefox = navigator.userAgent.includes('Firefox/');
-if (isFirefox) document.documentElement.classList.add('firefox-rendering');
-
 if (backgroundField && imageLayers.length === 2 && backgroundUrls.length > 1) {
   let imageIndex = 0;
   let activeLayer = 0;
