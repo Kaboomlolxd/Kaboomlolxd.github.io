@@ -5,7 +5,7 @@ interface Props {
   href?: string;
   tags?: string[];
   featured?: boolean;
-  mediaSlots?: { kind: 'video' | 'image'; label: string; src?: string; alt?: string; wide?: boolean }[];
+  mediaSlots?: { kind: 'video' | 'image'; label: string; src?: string; alt?: string; poster?: string; wide?: boolean }[];
   id?: string;
 }
 
@@ -36,7 +36,7 @@ const { title, description, href, tags = [], featured = false, mediaSlots = [], 
           {slot.src && slot.kind === 'image' ? (
             <img class="project-media-slot__image" src={slot.src} alt={slot.alt ?? slot.label} loading="lazy" />
           ) : slot.src && slot.kind === 'video' ? (
-            <video class="project-media-slot__video" src={slot.src} controls playsinline preload="metadata" aria-label={slot.label}></video>
+            <video class="project-media-slot__video" src={slot.src} poster={slot.poster} controls playsinline preload="none" aria-label={slot.label}></video>
           ) : (
             <div class="project-media-slot__frame">
               <span>{slot.kind === 'video' ? 'Video placeholder' : 'Image placeholder'}</span>

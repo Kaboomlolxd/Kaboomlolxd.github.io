@@ -32,7 +32,7 @@ const backgroundImages = [
   <body>
     <div class="background-image-field" data-backgrounds={backgroundImages.map((image) => `/backgrounds/${image}`).join('|')} aria-hidden="true">
       <img class="background-image is-active" src={`/backgrounds/${backgroundImages[0]}`} alt="" decoding="async" />
-      <img class="background-image" src={`/backgrounds/${backgroundImages[1]}`} alt="" decoding="async" />
+      <img class="background-image" alt="" decoding="async" />
     </div>
     <a class="skip-link" href="#main-content">Skip to content</a>
     <slot />
